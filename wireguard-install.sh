@@ -315,21 +315,33 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 	if [[ ! "$is_container" -eq 0 ]]; then
 		if [[ "$os" == "ubuntu" ]]; then
 			# Ubuntu
-			apt-get update
-			apt-get install -y wireguard qrencode $firewall
+			export DEBIAN_FRONTEND=noninteractive
+			(
+				set -x
+				apt-get -yqq update
+				apt-get -yqq install wireguard qrencode $firewall >/dev/null
+			)
 		elif [[ "$os" == "debian" && "$os_version" -ge 11 ]]; then
 			# Debian 11 or higher
-			apt-get update
-			apt-get install -y wireguard qrencode $firewall
+			export DEBIAN_FRONTEND=noninteractive
+			(
+				set -x
+				apt-get -yqq update
+				apt-get -yqq install wireguard qrencode $firewall >/dev/null
+			)
 		elif [[ "$os" == "debian" && "$os_version" -eq 10 ]]; then
 			# Debian 10
 			if ! grep -qs '^deb .* buster-backports main' /etc/apt/sources.list /etc/apt/sources.list.d/*.list; then
 				echo "deb http://deb.debian.org/debian buster-backports main" >> /etc/apt/sources.list
 			fi
-			apt-get update
-			# Try to install kernel headers for the running kernel and avoid a reboot. This
-			# can fail, so it's important to run separately from the other apt-get command.
-			apt-get install -y linux-headers-"$(uname -r)"
+			export DEBIAN_FRONTEND=noninteractive
+			(
+				set -x
+				apt-get -yqq update
+				# Try to install kernel headers for the running kernel and avoid a reboot. This
+				# can fail, so it's important to run separately from the other apt-get command.
+				apt-get -yqq install linux-headers-"$(uname -r)" >/dev/null
+			)
 			# There are cleaner ways to find out the $architecture, but we require an
 			# specific format for the package name and this approach provides what we need.
 			architecture=$(dpkg --get-selections 'linux-image-*-*' | cut -f 1 | grep -oE '[^-]*$' -m 1)
@@ -337,22 +349,34 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 			# because if the system has an outdated kernel, there is no guarantee that old
 			# headers were still downloadable and to provide suitable headers for future
 			# kernel updates.
-			apt-get install -y linux-headers-"$architecture"
-			apt-get install -y wireguard qrencode $firewall
+			(
+				set -x
+				apt-get -yqq install linux-headers-"$architecture" >/dev/null
+				apt-get -yqq install wireguard qrencode $firewall >/dev/null
+			)
 		elif [[ "$os" == "centos" && "$os_version" -eq 8 ]]; then
 			# CentOS 8
-			dnf install -y epel-release elrepo-release
-			dnf install -y kmod-wireguard wireguard-tools qrencode $firewall
+			(
+				set -x
+				yum -y -q install epel-release elrepo-release >/dev/null
+				yum -y -q install kmod-wireguard wireguard-tools qrencode $firewall >/dev/null
+			)
 			mkdir -p /etc/wireguard/
 		elif [[ "$os" == "centos" && "$os_version" -eq 7 ]]; then
 			# CentOS 7
-			yum install -y epel-release https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
-			yum install -y yum-plugin-elrepo
-			yum install -y kmod-wireguard wireguard-tools qrencode $firewall
+			(
+				set -x
+				yum -y -q install epel-release https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm >/dev/null
+				yum -y -q install yum-plugin-elrepo >/dev/null
+				yum -y -q install kmod-wireguard wireguard-tools qrencode $firewall >/dev/null
+			)
 			mkdir -p /etc/wireguard/
 		elif [[ "$os" == "fedora" ]]; then
 			# Fedora
-			dnf install -y wireguard-tools qrencode $firewall
+			(
+				set -x
+				dnf install -y wireguard-tools qrencode $firewall >/dev/null
+			)
 			mkdir -p /etc/wireguard/
 		fi
 	# Else, we are inside a container and BoringTun needs to be used
