@@ -206,7 +206,7 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 		apt-get update
 		apt-get install -y wget
 	fi
-	clear
+	echo
 	echo 'Welcome to this WireGuard road warrior installer!'
 	# If system has a single IPv4, it is selected automatically. Else, ask the user
 	if [[ $(ip -4 addr | grep inet | grep -vEc '127(\.[0-9]{1,3}){3}') -eq 1 ]]; then
@@ -537,7 +537,7 @@ EOF
 	echo "The client configuration is available in:" ~/"$client.conf"
 	echo "New clients can be added by running this script again."
 else
-	clear
+	echo
 	echo "WireGuard is already installed."
 	echo
 	echo "Select an option:"
