@@ -9,7 +9,7 @@ This script will let you set up your own VPN server in just a few minutes, even 
 Run the script on your Linux server\* and follow the prompts:
 
 ```bash
-wget https://get.vpnsetup.net/wg -nv -O wireguard.sh
+wget https://get.vpnsetup.net/wg -O wireguard.sh
 sudo bash wireguard.sh
 ```
 
