@@ -1,3 +1,5 @@
+[English](README.md) | [中文](README-zh.md)
+
 ## wireguard-install
 
 WireGuard VPN server installer for Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS and Fedora.
