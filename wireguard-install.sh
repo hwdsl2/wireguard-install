@@ -81,9 +81,12 @@ This version of CentOS is too old and unsupported."
 	exit
 fi
 
-if [ "$os" = "centos" ] && grep -qs "hwdsl2 VPN script" /etc/sysconfig/nftables.conf; then
-	echo "This system has nftables enabled, which is not supported by this installer."
-	exit
+if [ "$os" = "centos" ]; then
+	if grep -qs "hwdsl2 VPN script" /etc/sysconfig/nftables.conf \
+		|| systemctl is-active --quiet nftables 2>/dev/null; then
+		echo "This system has nftables enabled, which is not supported by this installer."
+		exit
+	fi
 fi
 
 # Detect environments where $PATH does not include the sbin directories
