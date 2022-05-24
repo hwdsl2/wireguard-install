@@ -23,7 +23,7 @@ sudo bash wireguard.sh
 
 ### 致谢
 
-此脚本基于 [Nyr 和 contributors](https://github.com/Nyr/wireguard-install) 的出色工作，并进行了增强和更改以与 Setup IPsec VPN 项目兼容。请向链接的上游代码库报告任何问题。
+此脚本基于 [Nyr 和 contributors](https://github.com/Nyr/wireguard-install) 的出色工作，并进行了增强和更改以与 [Setup IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn) 项目兼容。
 
 ### 授权协议
 
