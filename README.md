@@ -1,12 +1,14 @@
 [English](README.md) | [中文](README-zh.md)
 
-## wireguard-install
+# WireGuard VPN Server Auto Setup Script
 
 WireGuard VPN server installer for Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS and Fedora.
 
 This script will let you set up your own VPN server in just a few minutes, even if you haven't used [WireGuard](https://www.wireguard.com) before.
 
-### Installation
+[**&raquo; See also: OpenVPN Server Auto Setup Script**](https://github.com/hwdsl2/openvpn-install)
+
+## Installation
 
 Run the script on your Linux server\* and follow the prompts:
 
@@ -21,10 +23,10 @@ After setup, you can run the script again to manage users or uninstall WireGuard
 
 \* A cloud server, virtual private server (VPS) or dedicated server.
 
-### Credits
+## Credits
 
 This script is based on the great work of [Nyr and contributors](https://github.com/Nyr/wireguard-install), with enhancements and changes for compatibility with the [Setup IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn) project.
 
-### License
+## License
 
 MIT
