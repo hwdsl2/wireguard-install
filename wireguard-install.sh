@@ -195,8 +195,12 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 	if ! hash wget 2>/dev/null && ! hash curl 2>/dev/null; then
 		echo "Wget is required to use this installer."
 		read -n1 -r -p "Press any key to install Wget and continue..."
-		apt-get update
-		apt-get install -y wget
+		export DEBIAN_FRONTEND=noninteractive
+		(
+			set -x
+			apt-get -yqq update
+			apt-get -yqq install wget >/dev/null
+		)
 	fi
 	echo
 	echo 'Welcome to this WireGuard VPN server installer!'
@@ -281,6 +285,8 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 	read -n1 -r -p "Press any key to continue..."
 	# Install WireGuard
 	# Set up the WireGuard kernel module
+	echo
+	echo "Installing WireGuard, please wait..."
 	if [[ "$os" == "ubuntu" ]]; then
 		# Ubuntu
 		export DEBIAN_FRONTEND=noninteractive
@@ -349,7 +355,10 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 	fi
 	# If firewalld was just installed, enable it
 	if [[ "$firewall" == "firewalld" ]]; then
-		systemctl enable --now firewalld.service
+		(
+			set -x
+			systemctl enable --now firewalld.service >/dev/null 2>&1
+		)
 	fi
 	# Generate wg0.conf
 	cat << EOF > /etc/wireguard/wg0.conf
@@ -377,18 +386,18 @@ EOF
 	if systemctl is-active --quiet firewalld.service; then
 		# Using both permanent and not permanent rules to avoid a firewalld
 		# reload.
-		firewall-cmd --add-port="$port"/udp
-		firewall-cmd --zone=trusted --add-source=10.7.0.0/24
-		firewall-cmd --permanent --add-port="$port"/udp
-		firewall-cmd --permanent --zone=trusted --add-source=10.7.0.0/24
+		firewall-cmd -q --add-port="$port"/udp
+		firewall-cmd -q --zone=trusted --add-source=10.7.0.0/24
+		firewall-cmd -q --permanent --add-port="$port"/udp
+		firewall-cmd -q --permanent --zone=trusted --add-source=10.7.0.0/24
 		# Set NAT for the VPN subnet
-		firewall-cmd --direct --add-rule ipv4 nat POSTROUTING 0 -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j SNAT --to "$ip"
-		firewall-cmd --permanent --direct --add-rule ipv4 nat POSTROUTING 0 -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j SNAT --to "$ip"
+		firewall-cmd -q --direct --add-rule ipv4 nat POSTROUTING 0 -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j SNAT --to "$ip"
+		firewall-cmd -q --permanent --direct --add-rule ipv4 nat POSTROUTING 0 -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j SNAT --to "$ip"
 		if [[ -n "$ip6" ]]; then
-			firewall-cmd --zone=trusted --add-source=fddd:2c4:2c4:2c4::/64
-			firewall-cmd --permanent --zone=trusted --add-source=fddd:2c4:2c4:2c4::/64
-			firewall-cmd --direct --add-rule ipv6 nat POSTROUTING 0 -s fddd:2c4:2c4:2c4::/64 ! -d fddd:2c4:2c4:2c4::/64 -j SNAT --to "$ip6"
-			firewall-cmd --permanent --direct --add-rule ipv6 nat POSTROUTING 0 -s fddd:2c4:2c4:2c4::/64 ! -d fddd:2c4:2c4:2c4::/64 -j SNAT --to "$ip6"
+			firewall-cmd -q --zone=trusted --add-source=fddd:2c4:2c4:2c4::/64
+			firewall-cmd -q --permanent --zone=trusted --add-source=fddd:2c4:2c4:2c4::/64
+			firewall-cmd -q --direct --add-rule ipv6 nat POSTROUTING 0 -s fddd:2c4:2c4:2c4::/64 ! -d fddd:2c4:2c4:2c4::/64 -j SNAT --to "$ip6"
+			firewall-cmd -q --permanent --direct --add-rule ipv6 nat POSTROUTING 0 -s fddd:2c4:2c4:2c4::/64 ! -d fddd:2c4:2c4:2c4::/64 -j SNAT --to "$ip6"
 		fi
 	else
 		# Create a service to set up persistent iptables rules
@@ -423,12 +432,18 @@ ExecStop=$ip6tables_path -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCE
 		echo "RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target" >> /etc/systemd/system/wg-iptables.service
-		systemctl enable --now wg-iptables.service
+		(
+			set -x
+			systemctl enable --now wg-iptables.service >/dev/null 2>&1
+		)
 	fi
 	# Generates the custom client.conf
 	new_client_setup
 	# Enable and start the wg-quick service
-	systemctl enable --now wg-quick@wg0.service
+	(
+		set -x
+		systemctl enable --now wg-quick@wg0.service >/dev/null 2>&1
+	)
 	echo
 	qrencode -t UTF8 < ~/"$client.conf"
 	echo -e '\xE2\x86\x91 That is a QR code containing the client configuration.'
@@ -535,22 +550,24 @@ else
 				read -p "Confirm WireGuard removal? [y/N]: " remove
 			done
 			if [[ "$remove" =~ ^[yY]$ ]]; then
+				echo
+				echo "Removing WireGuard, please wait..."
 				port=$(grep '^ListenPort' /etc/wireguard/wg0.conf | cut -d " " -f 3)
 				if systemctl is-active --quiet firewalld.service; then
 					ip=$(firewall-cmd --direct --get-rules ipv4 nat POSTROUTING | grep '\-s 10.7.0.0/24 '"'"'!'"'"' -d 10.7.0.0/24' | grep -oE '[^ ]+$')
 					# Using both permanent and not permanent rules to avoid a firewalld reload.
-					firewall-cmd --remove-port="$port"/udp
-					firewall-cmd --zone=trusted --remove-source=10.7.0.0/24
-					firewall-cmd --permanent --remove-port="$port"/udp
-					firewall-cmd --permanent --zone=trusted --remove-source=10.7.0.0/24
-					firewall-cmd --direct --remove-rule ipv4 nat POSTROUTING 0 -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j SNAT --to "$ip"
-					firewall-cmd --permanent --direct --remove-rule ipv4 nat POSTROUTING 0 -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j SNAT --to "$ip"
+					firewall-cmd -q --remove-port="$port"/udp
+					firewall-cmd -q --zone=trusted --remove-source=10.7.0.0/24
+					firewall-cmd -q --permanent --remove-port="$port"/udp
+					firewall-cmd -q --permanent --zone=trusted --remove-source=10.7.0.0/24
+					firewall-cmd -q --direct --remove-rule ipv4 nat POSTROUTING 0 -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j SNAT --to "$ip"
+					firewall-cmd -q --permanent --direct --remove-rule ipv4 nat POSTROUTING 0 -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j SNAT --to "$ip"
 					if grep -qs 'fddd:2c4:2c4:2c4::1/64' /etc/wireguard/wg0.conf; then
 						ip6=$(firewall-cmd --direct --get-rules ipv6 nat POSTROUTING | grep '\-s fddd:2c4:2c4:2c4::/64 '"'"'!'"'"' -d fddd:2c4:2c4:2c4::/64' | grep -oE '[^ ]+$')
-						firewall-cmd --zone=trusted --remove-source=fddd:2c4:2c4:2c4::/64
-						firewall-cmd --permanent --zone=trusted --remove-source=fddd:2c4:2c4:2c4::/64
-						firewall-cmd --direct --remove-rule ipv6 nat POSTROUTING 0 -s fddd:2c4:2c4:2c4::/64 ! -d fddd:2c4:2c4:2c4::/64 -j SNAT --to "$ip6"
-						firewall-cmd --permanent --direct --remove-rule ipv6 nat POSTROUTING 0 -s fddd:2c4:2c4:2c4::/64 ! -d fddd:2c4:2c4:2c4::/64 -j SNAT --to "$ip6"
+						firewall-cmd -q --zone=trusted --remove-source=fddd:2c4:2c4:2c4::/64
+						firewall-cmd -q --permanent --zone=trusted --remove-source=fddd:2c4:2c4:2c4::/64
+						firewall-cmd -q --direct --remove-rule ipv6 nat POSTROUTING 0 -s fddd:2c4:2c4:2c4::/64 ! -d fddd:2c4:2c4:2c4::/64 -j SNAT --to "$ip6"
+						firewall-cmd -q --permanent --direct --remove-rule ipv6 nat POSTROUTING 0 -s fddd:2c4:2c4:2c4::/64 ! -d fddd:2c4:2c4:2c4::/64 -j SNAT --to "$ip6"
 					fi
 				else
 					systemctl disable --now wg-iptables.service
@@ -560,28 +577,39 @@ else
 				rm -f /etc/sysctl.d/99-wireguard-forward.conf
 				if [[ "$os" == "ubuntu" ]]; then
 					# Ubuntu
-					rm -rf /etc/wireguard/
-					apt-get remove --purge -y wireguard wireguard-tools
+					(
+						set -x
+						rm -rf /etc/wireguard/
+						apt-get remove --purge -y wireguard wireguard-tools >/dev/null
+					)
 				elif [[ "$os" == "debian" && "$os_version" -ge 11 ]]; then
 					# Debian 11 or higher
-					rm -rf /etc/wireguard/
-					apt-get remove --purge -y wireguard wireguard-tools
+					(
+						set -x
+						rm -rf /etc/wireguard/
+						apt-get remove --purge -y wireguard wireguard-tools >/dev/null
+					)
 				elif [[ "$os" == "debian" && "$os_version" -eq 10 ]]; then
 					# Debian 10
-					rm -rf /etc/wireguard/
-					apt-get remove --purge -y wireguard wireguard-dkms wireguard-tools
-				elif [[ "$os" == "centos" && "$os_version" -eq 8 ]]; then
-					# CentOS 8
-					dnf remove -y kmod-wireguard wireguard-tools
-					rm -rf /etc/wireguard/
-				elif [[ "$os" == "centos" && "$os_version" -eq 7 ]]; then
-					# CentOS 7
-					yum remove -y kmod-wireguard wireguard-tools
-					rm -rf /etc/wireguard/
+					(
+						set -x
+						rm -rf /etc/wireguard/
+						apt-get remove --purge -y wireguard wireguard-dkms wireguard-tools >/dev/null
+					)
+				elif [[ "$os" == "centos" ]]; then
+					# CentOS
+					(
+						set -x
+						yum -y -q remove kmod-wireguard wireguard-tools >/dev/null
+						rm -rf /etc/wireguard/
+					)
 				elif [[ "$os" == "fedora" ]]; then
 					# Fedora
-					dnf remove -y wireguard-tools
-					rm -rf /etc/wireguard/
+					(
+						set -x
+						dnf remove -y wireguard-tools >/dev/null
+						rm -rf /etc/wireguard/
+					)
 				fi
 				echo
 				echo "WireGuard removed!"
