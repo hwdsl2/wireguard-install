@@ -4,7 +4,7 @@
 
 使用 Linux 脚本一键快速搭建自己的 WireGuard VPN 服务器。支持 Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS 和 Fedora 系统。
 
-该脚本可让你在几分钟内建立自己的 VPN 服务器，即使你以前没有使用过 WireGuard。[WireGuard](https://www.wireguard.com) 是一种简单、快速和现代的 VPN，其设计目标是易于使用和高性能。
+该脚本可让你在几分钟内建立自己的 VPN 服务器，即使你以前没有使用过 WireGuard。[WireGuard](https://www.wireguard.com) 是一种快速且现代的 VPN，其设计目标是易于使用和高性能。
 
 [**&raquo; 另见：OpenVPN 服务器一键安装脚本**](https://github.com/hwdsl2/openvpn-install/blob/master/README-zh.md)
 
@@ -16,6 +16,21 @@
 wget https://get.vpnsetup.net/wg -O wireguard.sh
 sudo bash wireguard.sh
 ```
+
+<details>
+<summary>
+或者，你也可以使用以下命令。
+</summary>
+
+你也可以使用 `curl` 下载：
+
+```bash
+curl -fL https://get.vpnsetup.net/wg -o wireguard.sh
+sudo bash wireguard.sh
+```
+
+如果无法下载，打开 [wireguard-install.sh](wireguard-install.sh)，然后点击右边的 `Raw` 按钮。按快捷键 `Ctrl/Cmd+A` 全选，`Ctrl/Cmd+C` 复制，然后粘贴到你喜欢的编辑器。
+</details>
 
 安装完成后，你可以再次运行脚本来管理用户或卸载 WireGuard。
 
