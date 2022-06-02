@@ -19,10 +19,8 @@ sudo bash wireguard.sh
 
 <details>
 <summary>
-Alternative one-liner.
+You may also use curl to download.
 </summary>
-
-You may also use `curl` to download:
 
 ```bash
 curl -fL https://get.vpnsetup.net/wg -o wireguard.sh
@@ -32,11 +30,15 @@ sudo bash wireguard.sh
 If you are unable to download, open [wireguard-install.sh](wireguard-install.sh), then click the `Raw` button on the right. Press `Ctrl/Cmd+A` to select all, `Ctrl/Cmd+C` to copy, then paste into your favorite editor.
 </details>
 
+\* A cloud server, virtual private server (VPS) or dedicated server.
+
+## Next steps
+
 After setup, you can run the script again to manage users or uninstall WireGuard.
 
-[WireGuard VPN clients](https://www.wireguard.com/install/) are available for Windows, macOS, iOS and Android.
+[WireGuard VPN clients](https://www.wireguard.com/install/) are available for Windows, macOS, iOS and Android. To add a VPN connection, open the WireGuard App on your device, click on the "Add" button, then scan the generated QR code in the script output.
 
-\* A cloud server, virtual private server (VPS) or dedicated server.
+Enjoy your very own VPN! :sparkles::tada::rocket::sparkles:
 
 ## Credits
 
