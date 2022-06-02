@@ -198,9 +198,9 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 		export DEBIAN_FRONTEND=noninteractive
 		(
 			set -x
-			apt-get -yqq update
+			apt-get -yqq update || apt-get -yqq update
 			apt-get -yqq install wget >/dev/null
-		)
+		) || exit 1
 	fi
 	echo
 	echo 'Welcome to this WireGuard VPN server installer!'
@@ -292,17 +292,17 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 		export DEBIAN_FRONTEND=noninteractive
 		(
 			set -x
-			apt-get -yqq update
+			apt-get -yqq update || apt-get -yqq update
 			apt-get -yqq install wireguard qrencode $firewall >/dev/null
-		)
+		) || exit 1
 	elif [[ "$os" == "debian" && "$os_version" -ge 11 ]]; then
 		# Debian 11 or higher
 		export DEBIAN_FRONTEND=noninteractive
 		(
 			set -x
-			apt-get -yqq update
+			apt-get -yqq update || apt-get -yqq update
 			apt-get -yqq install wireguard qrencode $firewall >/dev/null
-		)
+		) || exit 1
 	elif [[ "$os" == "debian" && "$os_version" -eq 10 ]]; then
 		# Debian 10
 		if ! grep -qs '^deb .* buster-backports main' /etc/apt/sources.list /etc/apt/sources.list.d/*.list; then
@@ -311,7 +311,7 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 		export DEBIAN_FRONTEND=noninteractive
 		(
 			set -x
-			apt-get -yqq update
+			apt-get -yqq update || apt-get -yqq update
 			# Try to install kernel headers for the running kernel and avoid a reboot. This
 			# can fail, so it's important to run separately from the other apt-get command.
 			apt-get -yqq install linux-headers-"$(uname -r)" >/dev/null
@@ -327,14 +327,14 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 			set -x
 			apt-get -yqq install linux-headers-"$architecture" >/dev/null
 			apt-get -yqq install wireguard qrencode $firewall >/dev/null
-		)
+		) || exit 1
 	elif [[ "$os" == "centos" && "$os_version" -eq 8 ]]; then
 		# CentOS 8
 		(
 			set -x
 			yum -y -q install epel-release elrepo-release >/dev/null
 			yum -y -q install kmod-wireguard wireguard-tools qrencode $firewall >/dev/null
-		)
+		) || exit 1
 		mkdir -p /etc/wireguard/
 	elif [[ "$os" == "centos" && "$os_version" -eq 7 ]]; then
 		# CentOS 7
@@ -343,14 +343,14 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 			yum -y -q install epel-release https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm >/dev/null
 			yum -y -q install yum-plugin-elrepo >/dev/null
 			yum -y -q install kmod-wireguard wireguard-tools qrencode $firewall >/dev/null
-		)
+		) || exit 1
 		mkdir -p /etc/wireguard/
 	elif [[ "$os" == "fedora" ]]; then
 		# Fedora
 		(
 			set -x
 			dnf install -y wireguard-tools qrencode $firewall >/dev/null
-		)
+		) || exit 1
 		mkdir -p /etc/wireguard/
 	fi
 	# If firewalld was just installed, enable it
