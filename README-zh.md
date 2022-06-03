@@ -19,12 +19,20 @@ sudo bash wireguard.sh
 
 <details>
 <summary>
-你也可以使用 curl 下载。
+或者，你也可以使用以下命令。
 </summary>
+
+你也可以使用 `curl` 下载：
 
 ```bash
 curl -fL https://get.vpnsetup.net/wg -o wireguard.sh
 sudo bash wireguard.sh
+```
+
+或者，你也可以使用这个链接：
+
+```bash
+https://github.com/hwdsl2/wireguard-install/raw/master/wireguard-install.sh
 ```
 
 如果无法下载，打开 [wireguard-install.sh](wireguard-install.sh)，然后点击右边的 `Raw` 按钮。按快捷键 `Ctrl/Cmd+A` 全选，`Ctrl/Cmd+C` 复制，然后粘贴到你喜欢的编辑器。

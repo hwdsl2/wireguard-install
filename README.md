@@ -19,12 +19,20 @@ sudo bash wireguard.sh
 
 <details>
 <summary>
-You may also use curl to download.
+Alternative commands.
 </summary>
+
+You may also use `curl` to download:
 
 ```bash
 curl -fL https://get.vpnsetup.net/wg -o wireguard.sh
 sudo bash wireguard.sh
+```
+
+Alternative setup URL:
+
+```bash
+https://github.com/hwdsl2/wireguard-install/raw/master/wireguard-install.sh
 ```
 
 If you are unable to download, open [wireguard-install.sh](wireguard-install.sh), then click the `Raw` button on the right. Press `Ctrl/Cmd+A` to select all, `Ctrl/Cmd+C` to copy, then paste into your favorite editor.
