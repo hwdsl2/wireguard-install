@@ -44,7 +44,7 @@ https://github.com/hwdsl2/wireguard-install/raw/master/wireguard-install.sh
 
 安装完成后，你可以再次运行脚本来管理用户或者卸载 WireGuard。
 
-[WireGuard VPN 客户端](https://www.wireguard.com/install/) 在 Windows, macOS, iOS 和 Android 上可用。要添加 VPN 连接，请在你的设备上打开 WireGuard 应用程序，单击 "添加" 按钮，然后扫描脚本输出中生成的二维码。
+[WireGuard VPN 客户端](https://www.wireguard.com/install/) 在 Windows, macOS, iOS 和 Android 上可用。要添加 VPN 连接，请在你的移动设备上打开 WireGuard 应用程序，单击 "添加" 按钮，然后扫描脚本输出中生成的二维码。对于 Windows 和 macOS，首先将生成的 `.conf` 文件安全地传送到你的计算机，然后打开 WireGuard 并导入文件。
 
 开始使用自己的专属 VPN! :sparkles::tada::rocket::sparkles:
 
