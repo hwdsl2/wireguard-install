@@ -80,14 +80,6 @@ This version of CentOS is too old and unsupported."
 	exit 1
 fi
 
-if [ "$os" = "centos" ]; then
-	if grep -qs "hwdsl2 VPN script" /etc/sysconfig/nftables.conf \
-		|| systemctl is-active --quiet nftables 2>/dev/null; then
-		echo "This system has nftables enabled, which is not supported by this installer."
-		exit 1
-	fi
-fi
-
 # Detect environments where $PATH does not include the sbin directories
 if ! grep -q sbin <<< "$PATH"; then
 	echo '$PATH does not include sbin. Try using "su -" instead of "su".'
@@ -191,6 +183,13 @@ EOF
 }
 
 if [[ ! -e /etc/wireguard/wg0.conf ]]; then
+	if [ "$os" = "centos" ]; then
+		if grep -qs "hwdsl2 VPN script" /etc/sysconfig/nftables.conf \
+			|| systemctl is-active --quiet nftables 2>/dev/null; then
+			echo "This system has nftables enabled, which is not supported by this installer."
+			exit 1
+		fi
+	fi
 	# Detect some Debian minimal setups where neither wget nor curl are installed
 	if ! hash wget 2>/dev/null && ! hash curl 2>/dev/null; then
 		echo "Wget is required to use this installer."
