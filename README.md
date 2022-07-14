@@ -48,6 +48,14 @@ After setup, you can run the script again to manage users or uninstall WireGuard
 
 Enjoy your very own VPN! :sparkles::tada::rocket::sparkles:
 
+<details>
+<summary>
+Like this project? You can show your support or appreciation.
+</summary>
+
+<a href="https://ko-fi.com/hwdsl2" target="_blank"><img height="36" width="187" src="docs/images/kofi2.png" border="0" alt="Buy Me a Coffee at ko-fi.com" /></a> &nbsp;<a href="https://coindrop.to/hwdsl2" target="_blank"><img src="docs/images/embed-button.png" height="36" width="145" border="0" alt="Coindrop.to me" /></a>
+</details>
+
 ## Credits
 
 This script is based on the great work of [Nyr and contributors](https://github.com/Nyr/wireguard-install), with enhancements and changes for compatibility with the [Setup IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn) project.
