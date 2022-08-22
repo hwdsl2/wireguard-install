@@ -327,6 +327,14 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 			apt-get -yqq install linux-headers-"$architecture" >/dev/null
 			apt-get -yqq install wireguard qrencode $firewall >/dev/null
 		) || exit 1
+	elif [[ "$os" == "centos" && "$os_version" -eq 9 ]]; then
+		# CentOS 9
+		(
+			set -x
+			yum -y -q install epel-release >/dev/null
+			yum -y -q install wireguard-tools qrencode $firewall >/dev/null
+		) || exit 1
+		mkdir -p /etc/wireguard/
 	elif [[ "$os" == "centos" && "$os_version" -eq 8 ]]; then
 		# CentOS 8
 		(
@@ -453,9 +461,9 @@ WantedBy=multi-user.target" >> /etc/systemd/system/wg-iptables.service
 		echo "Warning!"
 		echo "Installation was finished, but the WireGuard kernel module could not load."
 		if [[ "$os" == "ubuntu" && "$os_version" -eq 1804 ]]; then
-		echo 'Upgrade the kernel and headers with "apt-get install linux-generic" and restart.'
+			echo 'Upgrade the kernel and headers with "apt-get install linux-generic" and restart.'
 		elif [[ "$os" == "debian" && "$os_version" -eq 10 ]]; then
-		echo "Upgrade the kernel with \"apt-get install linux-image-$architecture\" and restart."
+			echo "Upgrade the kernel with \"apt-get install linux-image-$architecture\" and restart."
 		elif [[ "$os" == "centos" && "$os_version" -le 8 ]]; then
 			echo "Reboot the system to load the most recent kernel."
 		fi
@@ -595,8 +603,15 @@ else
 						rm -rf /etc/wireguard/
 						apt-get remove --purge -y wireguard wireguard-dkms wireguard-tools >/dev/null
 					)
-				elif [[ "$os" == "centos" ]]; then
-					# CentOS
+				elif [[ "$os" == "centos" && "$os_version" -eq 9 ]]; then
+					# CentOS 9
+					(
+						set -x
+						yum -y -q remove wireguard-tools >/dev/null
+						rm -rf /etc/wireguard/
+					)
+				elif [[ "$os" == "centos" && "$os_version" -le 8 ]]; then
+					# CentOS 8 or 7
 					(
 						set -x
 						yum -y -q remove kmod-wireguard wireguard-tools >/dev/null
