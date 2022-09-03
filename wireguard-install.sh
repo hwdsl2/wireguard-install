@@ -99,6 +99,11 @@ if [[ "$is_container" -eq 0 ]]; then
 	exit 1
 fi
 
+abort_and_exit () {
+	echo "Abort. No changes were made." >&2
+	exit 1
+}
+
 get_export_dir () {
 	export_to_home_dir=0
 	export_dir=~/
@@ -509,11 +514,13 @@ else
 			echo
 			echo "Provide a name for the client:"
 			read -p "Name: " unsanitized_client
+			[ -z "$unsanitized_client" ] && abort_and_exit
 			# Allow a limited set of characters to avoid conflicts
 			client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<< "$unsanitized_client")
 			while [[ -z "$client" ]] || grep -q "^# BEGIN_PEER $client$" /etc/wireguard/wg0.conf; do
 				echo "$client: invalid name."
 				read -p "Name: " unsanitized_client
+				[ -z "$unsanitized_client" ] && abort_and_exit
 				client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<< "$unsanitized_client")
 			done
 			echo
@@ -541,9 +548,11 @@ else
 			echo "Select the client to remove:"
 			grep '^# BEGIN_PEER' /etc/wireguard/wg0.conf | cut -d ' ' -f 3 | nl -s ') '
 			read -p "Client: " client_number
+			[ -z "$client_number" ] && abort_and_exit
 			until [[ "$client_number" =~ ^[0-9]+$ && "$client_number" -le "$number_of_clients" ]]; do
 				echo "$client_number: invalid selection."
 				read -p "Client: " client_number
+				[ -z "$client_number" ] && abort_and_exit
 			done
 			client=$(grep '^# BEGIN_PEER' /etc/wireguard/wg0.conf | cut -d ' ' -f 3 | sed -n "$client_number"p)
 			echo
