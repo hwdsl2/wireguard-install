@@ -99,6 +99,18 @@ if [[ "$is_container" -eq 0 ]]; then
 	exit 1
 fi
 
+get_export_dir () {
+	export_to_home_dir=0
+	export_dir=~/
+	if [ -n "$SUDO_USER" ] && getent group "$SUDO_USER" >/dev/null 2>&1; then
+		user_home_dir=$(getent passwd "$SUDO_USER" 2>/dev/null | cut -d: -f6)
+		if [ -d "$user_home_dir" ] && [ "$user_home_dir" != "/" ]; then
+			export_dir="$user_home_dir/"
+			export_to_home_dir=1
+		fi
+	fi
+}
+
 new_client_dns () {
 	echo "Select a DNS server for the client:"
 	echo "   1) Current system resolvers"
@@ -144,6 +156,7 @@ new_client_dns () {
 }
 
 new_client_setup () {
+	get_export_dir
 	# Given a list of the assigned internal IPv4 addresses, obtain the lowest still
 	# available octet. Important to start looking at 2, because 1 is our gateway.
 	octet=2
@@ -167,7 +180,7 @@ AllowedIPs = 10.7.0.$octet/32$(grep -q 'fddd:2c4:2c4:2c4::1' /etc/wireguard/wg0.
 # END_PEER $client
 EOF
 	# Create client configuration
-	cat << EOF > ~/"$client".conf
+	cat << EOF > "$export_dir$client".conf
 [Interface]
 Address = 10.7.0.$octet/24$(grep -q 'fddd:2c4:2c4:2c4::1' /etc/wireguard/wg0.conf && echo ", fddd:2c4:2c4:2c4::$octet/64")
 DNS = $dns
@@ -180,6 +193,10 @@ AllowedIPs = 0.0.0.0/0, ::/0
 Endpoint = $(grep '^# ENDPOINT' /etc/wireguard/wg0.conf | cut -d " " -f 3):$(grep ListenPort /etc/wireguard/wg0.conf | cut -d " " -f 3)
 PersistentKeepalive = 25
 EOF
+	if [ "$export_to_home_dir" = "1" ]; then
+		chown "$SUDO_USER:$SUDO_USER" "$export_dir$client".conf
+	fi
+	chmod 600 "$export_dir$client".conf
 }
 
 if [[ ! -e /etc/wireguard/wg0.conf ]]; then
@@ -452,7 +469,7 @@ WantedBy=multi-user.target" >> /etc/systemd/system/wg-iptables.service
 		systemctl enable --now wg-quick@wg0.service >/dev/null 2>&1
 	)
 	echo
-	qrencode -t UTF8 < ~/"$client.conf"
+	qrencode -t UTF8 < "$export_dir$client".conf
 	echo -e '\xE2\x86\x91 That is a QR code containing the client configuration.'
 	echo
 	# If the kernel module didn't load, system probably had an outdated kernel
@@ -471,7 +488,7 @@ WantedBy=multi-user.target" >> /etc/systemd/system/wg-iptables.service
 		echo "Finished!"
 	fi
 	echo
-	echo "The client configuration is available in:" ~/"$client.conf"
+	echo "The client configuration is available in: $export_dir$client.conf"
 	echo "New clients can be added by running this script again."
 else
 	echo
@@ -505,10 +522,10 @@ else
 			# Append new client configuration to the WireGuard interface
 			wg addconf wg0 <(sed -n "/^# BEGIN_PEER $client/,/^# END_PEER $client/p" /etc/wireguard/wg0.conf)
 			echo
-			qrencode -t UTF8 < ~/"$client.conf"
+			qrencode -t UTF8 < "$export_dir$client".conf
 			echo -e '\xE2\x86\x91 That is a QR code containing your client configuration.'
 			echo
-			echo "$client added. Configuration available in:" ~/"$client.conf"
+			echo "$client added. Configuration available in: $export_dir$client.conf"
 			exit
 		;;
 		2)
