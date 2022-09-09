@@ -628,6 +628,11 @@ else
 				fi
 				systemctl disable --now wg-quick@wg0.service
 				rm -f /etc/sysctl.d/99-wireguard-forward.conf /etc/sysctl.d/99-wireguard-optimize.conf
+				if [ ! -f /usr/sbin/openvpn ] && [ ! -f /usr/sbin/ipsec ] \
+					&& [ ! -f /usr/local/sbin/ipsec ]; then
+					echo 0 > /proc/sys/net/ipv4/ip_forward
+					echo 0 > /proc/sys/net/ipv6/conf/all/forwarding
+				fi
 				if [[ "$os" == "ubuntu" ]]; then
 					# Ubuntu
 					(
