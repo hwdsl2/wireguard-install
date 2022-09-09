@@ -116,6 +116,35 @@ get_export_dir () {
 	fi
 }
 
+update_sysctl () {
+	# Enable net.ipv4.ip_forward for the system
+	echo 'net.ipv4.ip_forward=1' > /etc/sysctl.d/99-wireguard-forward.conf
+	if [[ -n "$ip6" ]]; then
+		# Enable net.ipv6.conf.all.forwarding for the system
+		echo "net.ipv6.conf.all.forwarding=1" >> /etc/sysctl.d/99-wireguard-forward.conf
+	fi
+	# Optimize sysctl settings such as TCP buffer sizes
+cat > /etc/sysctl.d/99-wireguard-optimize.conf <<'EOF'
+kernel.msgmnb = 65536
+kernel.msgmax = 65536
+net.core.wmem_max = 16777216
+net.core.rmem_max = 16777216
+net.ipv4.tcp_rmem = 4096 87380 16777216
+net.ipv4.tcp_wmem = 4096 87380 16777216
+EOF
+	# Enable TCP BBR congestion control if kernel version >= 4.20
+	if modprobe -q tcp_bbr \
+		&& printf '%s\n%s' "4.20" "$(uname -r)" | sort -C -V; then
+cat >> /etc/sysctl.d/99-wireguard-optimize.conf <<'EOF'
+net.core.default_qdisc = fq
+net.ipv4.tcp_congestion_control = bbr
+EOF
+	fi
+	# Apply sysctl settings
+	sysctl -e -q -p /etc/sysctl.d/99-wireguard-forward.conf
+	sysctl -e -q -p /etc/sysctl.d/99-wireguard-optimize.conf
+}
+
 new_client_dns () {
 	echo "Select a DNS server for the client:"
 	echo "   1) Current system resolvers"
@@ -402,16 +431,7 @@ ListenPort = $port
 
 EOF
 	chmod 600 /etc/wireguard/wg0.conf
-	# Enable net.ipv4.ip_forward for the system
-	echo 'net.ipv4.ip_forward=1' > /etc/sysctl.d/99-wireguard-forward.conf
-	# Enable without waiting for a reboot or service restart
-	echo 1 > /proc/sys/net/ipv4/ip_forward
-	if [[ -n "$ip6" ]]; then
-		# Enable net.ipv6.conf.all.forwarding for the system
-		echo "net.ipv6.conf.all.forwarding=1" >> /etc/sysctl.d/99-wireguard-forward.conf
-		# Enable without waiting for a reboot or service restart
-		echo 1 > /proc/sys/net/ipv6/conf/all/forwarding
-	fi
+	update_sysctl
 	if systemctl is-active --quiet firewalld.service; then
 		# Using both permanent and not permanent rules to avoid a firewalld
 		# reload.
@@ -607,7 +627,7 @@ else
 					rm -f /etc/systemd/system/wg-iptables.service
 				fi
 				systemctl disable --now wg-quick@wg0.service
-				rm -f /etc/sysctl.d/99-wireguard-forward.conf
+				rm -f /etc/sysctl.d/99-wireguard-forward.conf /etc/sysctl.d/99-wireguard-optimize.conf
 				if [[ "$os" == "ubuntu" ]]; then
 					# Ubuntu
 					(
