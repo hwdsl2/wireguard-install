@@ -550,7 +550,7 @@ else
 			wg addconf wg0 <(sed -n "/^# BEGIN_PEER $client/,/^# END_PEER $client/p" /etc/wireguard/wg0.conf)
 			echo
 			qrencode -t UTF8 < "$export_dir$client".conf
-			echo -e '\xE2\x86\x91 That is a QR code containing your client configuration.'
+			echo -e '\xE2\x86\x91 That is a QR code containing the client configuration.'
 			echo
 			echo "$client added. Configuration available in: $export_dir$client.conf"
 			exit
@@ -582,11 +582,19 @@ else
 				read -p "Confirm $client removal? [y/N]: " remove
 			done
 			if [[ "$remove" =~ ^[yY]$ ]]; then
+				echo
+				echo "Removing $client..."
 				# The following is the right way to avoid disrupting other active connections:
 				# Remove from the live interface
 				wg set wg0 peer "$(sed -n "/^# BEGIN_PEER $client$/,\$p" /etc/wireguard/wg0.conf | grep -m 1 PublicKey | cut -d " " -f 3)" remove
 				# Remove from the configuration file
 				sed -i "/^# BEGIN_PEER $client$/,/^# END_PEER $client$/d" /etc/wireguard/wg0.conf
+				get_export_dir
+				wg_file="$export_dir$client.conf"
+				if [ -f "$wg_file" ]; then
+					echo "Removing $wg_file..."
+					rm -f "$wg_file"
+				fi
 				echo
 				echo "$client removed!"
 			else
