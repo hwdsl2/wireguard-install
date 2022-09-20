@@ -6,6 +6,8 @@ WireGuard VPN server installer for Ubuntu, Debian, AlmaLinux, Rocky Linux, CentO
 
 This script will let you set up your own VPN server in just a few minutes, even if you haven't used WireGuard before. [WireGuard](https://www.wireguard.com) is a fast and modern VPN designed with the goals of ease of use and high performance.
 
+A video tutorial in Spanish is available: [Install OpenVPN/WireGuard on Ubuntu 20.04](https://www.youtube.com/watch?v=99qtaJU2E2k).
+
 [**&raquo; See also: OpenVPN Server Auto Setup Script**](https://github.com/hwdsl2/openvpn-install)
 
 ## Installation
@@ -29,10 +31,11 @@ curl -fL https://get.vpnsetup.net/wg -o wireguard.sh
 sudo bash wireguard.sh
 ```
 
-Alternative setup URL:
+Alternative setup URLs:
 
 ```bash
 https://github.com/hwdsl2/wireguard-install/raw/master/wireguard-install.sh
+https://gitlab.com/hwdsl2/wireguard-install/-/raw/master/wireguard-install.sh
 ```
 
 If you are unable to download, open [wireguard-install.sh](wireguard-install.sh), then click the `Raw` button on the right. Press `Ctrl/Cmd+A` to select all, `Ctrl/Cmd+C` to copy, then paste into your favorite editor.
@@ -59,6 +62,19 @@ Like this project? You can show your support or appreciation.
 ## Credits
 
 This script is based on the great work of [Nyr and contributors](https://github.com/Nyr/wireguard-install), with enhancements and changes for compatibility with the [Setup IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn) project.
+
+<details>
+<summary>
+List of enhancements over Nyr/wireguard-install.
+</summary>
+
+- Improved compatibility with Setup IPsec VPN
+- Improved script reliability, user input and output
+- Optimized `sysctl` settings for improved VPN performance
+- Improved creation of client config files when using `sudo`
+
+...and more!
+</details>
 
 ## License
 

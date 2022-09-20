@@ -2,9 +2,11 @@
 
 # WireGuard VPN 服务器一键安装脚本
 
-使用 Linux 脚本一键快速搭建自己的 WireGuard VPN 服务器。支持 Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS 和 Fedora 系统。
+使用 Linux 脚本一键快速搭建自己的 WireGuard VPN 服务器。支持 Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS 和 Fedora。
 
 该脚本可让你在几分钟内建立自己的 VPN 服务器，即使你以前没有使用过 WireGuard。[WireGuard](https://www.wireguard.com) 是一种快速且现代的 VPN，其设计目标是易于使用和高性能。
+
+视频教程（西班牙语）：[在 Ubuntu 20.04 上安装 OpenVPN/WireGuard](https://www.youtube.com/watch?v=99qtaJU2E2k)。
 
 [**&raquo; 另见：OpenVPN 服务器一键安装脚本**](https://github.com/hwdsl2/openvpn-install/blob/master/README-zh.md)
 
@@ -29,10 +31,11 @@ curl -fL https://get.vpnsetup.net/wg -o wireguard.sh
 sudo bash wireguard.sh
 ```
 
-或者，你也可以使用这个链接：
+或者，你也可以使用这些链接：
 
 ```bash
 https://github.com/hwdsl2/wireguard-install/raw/master/wireguard-install.sh
+https://gitlab.com/hwdsl2/wireguard-install/-/raw/master/wireguard-install.sh
 ```
 
 如果无法下载，打开 [wireguard-install.sh](wireguard-install.sh)，然后点击右边的 `Raw` 按钮。按快捷键 `Ctrl/Cmd+A` 全选，`Ctrl/Cmd+C` 复制，然后粘贴到你喜欢的编辑器。
@@ -59,6 +62,19 @@ https://github.com/hwdsl2/wireguard-install/raw/master/wireguard-install.sh
 ## 致谢
 
 此脚本基于 [Nyr 和 contributors](https://github.com/Nyr/wireguard-install) 的出色工作，并进行了增强和更改以与 [Setup IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn) 项目兼容。
+
+<details>
+<summary>
+对 Nyr/wireguard-install 的改进列表。
+</summary>
+
+- 改进了与 Setup IPsec VPN 的兼容性
+- 改进了脚本的可靠性，用户输入和输出
+- 优化 `sysctl` 设置以提高 VPN 性能
+- 使用 `sudo` 时改进了客户端配置文件的创建
+
+...和更多！
+</details>
 
 ## 授权协议
 
