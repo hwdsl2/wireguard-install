@@ -96,6 +96,11 @@ if systemd-detect-virt -cq 2>/dev/null; then
 	exit 1
 fi
 
+check_ip() {
+	IP_REGEX='^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$'
+	printf '%s' "$1" | tr -d '\n' | grep -Eq "$IP_REGEX"
+}
+
 abort_and_exit () {
 	echo "Abort. No changes were made." >&2
 	exit 1
@@ -145,19 +150,20 @@ EOF
 new_client_dns () {
 	echo "Select a DNS server for the client:"
 	echo "   1) Current system resolvers"
-	echo "   2) Google"
-	echo "   3) 1.1.1.1"
+	echo "   2) Google Public DNS"
+	echo "   3) Cloudflare DNS"
 	echo "   4) OpenDNS"
 	echo "   5) Quad9"
-	echo "   6) AdGuard"
-	read -p "DNS server [1]: " dns
-	until [[ -z "$dns" || "$dns" =~ ^[1-6]$ ]]; do
+	echo "   6) AdGuard DNS"
+	echo "   7) Custom"
+	read -p "DNS server [2]: " dns
+	until [[ -z "$dns" || "$dns" =~ ^[1-7]$ ]]; do
 		echo "$dns: invalid selection."
-		read -p "DNS server [1]: " dns
+		read -p "DNS server [2]: " dns
 	done
 		# DNS
 	case "$dns" in
-		1|"")
+		1)
 			# Locate the proper resolv.conf
 			# Needed for systems running systemd-resolved
 			if grep '^nameserver' "/etc/resolv.conf" | grep -qv '127.0.0.53' ; then
@@ -168,7 +174,7 @@ new_client_dns () {
 			# Extract nameservers and provide them in the required format
 			dns=$(grep -v '^#\|^;' "$resolv_conf" | grep '^nameserver' | grep -v '127.0.0.53' | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}' | xargs | sed -e 's/ /, /g')
 		;;
-		2)
+		2|"")
 			dns="8.8.8.8, 8.8.4.4"
 		;;
 		3)
@@ -182,6 +188,23 @@ new_client_dns () {
 		;;
 		6)
 			dns="94.140.14.14, 94.140.15.15"
+		;;
+		7)
+			read -rp "Enter primary DNS server: " dns1
+			until check_ip "$dns1"; do
+				echo "Invalid DNS server."
+				read -rp "Enter primary DNS server: " dns1
+			done
+			read -rp "Enter secondary DNS server (Enter to skip): " dns2
+			until [ -z "$dns2" ] || check_ip "$dns2"; do
+				echo "Invalid DNS server."
+				read -rp "Enter secondary DNS server (Enter to skip): " dns2
+			done
+			if [ -n "$dns2" ]; then
+				dns="$dns1, $dns2"
+			else
+				dns="$dns1"
+			fi
 		;;
 	esac
 }
