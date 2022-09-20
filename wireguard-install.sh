@@ -86,15 +86,12 @@ if ! grep -q sbin <<< "$PATH"; then
 	exit 1
 fi
 
-if [[ "$EUID" -ne 0 ]]; then
-	echo "This installer needs to be run with superuser privileges."
+if [ "$(id -u)" != 0 ]; then
+	echo "This installer must be run as root. Try 'sudo bash $0'"
 	exit 1
 fi
 
-systemd-detect-virt -cq
-is_container="$?"
-
-if [[ "$is_container" -eq 0 ]]; then
+if systemd-detect-virt -cq 2>/dev/null; then
 	echo "This system is running inside a container, which is not supported by this installer."
 	exit 1
 fi
@@ -254,6 +251,9 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 	fi
 	echo
 	echo 'Welcome to this WireGuard VPN server installer!'
+	echo
+	echo 'I need to ask you a few questions before starting setup.'
+	echo 'You can use the default options and just press enter if you are OK with them.'
 	# If system has a single IPv4, it is selected automatically. Else, ask the user
 	if [[ $(ip -4 addr | grep inet | grep -vEc '127(\.[0-9]{1,3}){3}') -eq 1 ]]; then
 		ip=$(ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}')
