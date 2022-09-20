@@ -70,6 +70,7 @@ https://gitlab.com/hwdsl2/wireguard-install/-/raw/master/wireguard-install.sh
 
 - 改进了与 Setup IPsec VPN 的兼容性
 - 改进了脚本的可靠性，用户输入和输出
+- 支持为 VPN 客户端自定义 DNS 服务器
 - 优化 `sysctl` 设置以提高 VPN 性能
 - 使用 `sudo` 时改进了客户端配置文件的创建
 
