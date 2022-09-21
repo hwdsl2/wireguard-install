@@ -102,8 +102,13 @@ check_ip() {
 }
 
 find_public_ip() {
+	ip_url1="http://ipv4.icanhazip.com"
+	ip_url2="http://ip1.dynupdate.no-ip.com"
 	# Get public IP and sanitize with grep
-	get_public_ip=$(grep -m 1 -oE '^[0-9]{1,3}(\.[0-9]{1,3}){3}$' <<< "$(wget -T 10 -t 1 -4qO- "http://ip1.dynupdate.no-ip.com/" || curl -m 10 -4Ls "http://ip1.dynupdate.no-ip.com/")")
+	get_public_ip=$(grep -m 1 -oE '^[0-9]{1,3}(\.[0-9]{1,3}){3}$' <<< "$(wget -T 10 -t 1 -4qO- "$ip_url1" || curl -m 10 -4Ls "$ip_url1")")
+	if [ -z "$get_public_ip" ]; then
+		get_public_ip=$(grep -m 1 -oE '^[0-9]{1,3}(\.[0-9]{1,3}){3}$' <<< "$(wget -T 10 -t 1 -4qO- "$ip_url2" || curl -m 10 -4Ls "$ip_url2")")
+	fi
 }
 
 abort_and_exit () {
@@ -287,14 +292,16 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 		ip=$(ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}')
 	else
 		find_public_ip
-		ip_list=$(ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}')
 		ip_match=0
-		while IFS= read -r line; do
-			if [ "$line" = "$get_public_ip" ]; then
-				ip_match=1
-				ip="$line"
-			fi
-		done <<< "$ip_list"
+		if [ -n "$get_public_ip" ]; then
+			ip_list=$(ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}')
+			while IFS= read -r line; do
+				if [ "$line" = "$get_public_ip" ]; then
+					ip_match=1
+					ip="$line"
+				fi
+			done <<< "$ip_list"
+		fi
 		if [ "$ip_match" = 0 ]; then
 			number_of_ip=$(ip -4 addr | grep inet | grep -vEc '127(\.[0-9]{1,3}){3}')
 			echo
