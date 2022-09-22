@@ -287,33 +287,37 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 	echo
 	echo 'I need to ask you a few questions before starting setup.'
 	echo 'You can use the default options and just press enter if you are OK with them.'
-	# If system has a single IPv4, it is selected automatically. Else, ask the user
+	# If system has a single IPv4, it is selected automatically.
 	if [[ $(ip -4 addr | grep inet | grep -vEc '127(\.[0-9]{1,3}){3}') -eq 1 ]]; then
 		ip=$(ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}')
 	else
-		find_public_ip
-		ip_match=0
-		if [ -n "$get_public_ip" ]; then
-			ip_list=$(ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}')
-			while IFS= read -r line; do
-				if [ "$line" = "$get_public_ip" ]; then
-					ip_match=1
-					ip="$line"
-				fi
-			done <<< "$ip_list"
-		fi
-		if [ "$ip_match" = 0 ]; then
-			number_of_ip=$(ip -4 addr | grep inet | grep -vEc '127(\.[0-9]{1,3}){3}')
-			echo
-			echo "Which IPv4 address should be used?"
-			ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}' | nl -s ') '
-			read -rp "IPv4 address [1]: " ip_number
-			until [[ -z "$ip_number" || "$ip_number" =~ ^[0-9]+$ && "$ip_number" -le "$number_of_ip" ]]; do
-				echo "$ip_number: invalid selection."
+		# Use the IP address on the default route
+		ip=$(ip -4 route get 1 | sed 's/ uid .*//' | awk '{print $NF;exit}' 2>/dev/null)
+		if ! check_ip "$ip"; then
+			find_public_ip
+			ip_match=0
+			if [ -n "$get_public_ip" ]; then
+				ip_list=$(ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}')
+				while IFS= read -r line; do
+					if [ "$line" = "$get_public_ip" ]; then
+						ip_match=1
+						ip="$line"
+					fi
+				done <<< "$ip_list"
+			fi
+			if [ "$ip_match" = 0 ]; then
+				number_of_ip=$(ip -4 addr | grep inet | grep -vEc '127(\.[0-9]{1,3}){3}')
+				echo
+				echo "Which IPv4 address should be used?"
+				ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}' | nl -s ') '
 				read -rp "IPv4 address [1]: " ip_number
-			done
-			[[ -z "$ip_number" ]] && ip_number="1"
-			ip=$(ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}' | sed -n "$ip_number"p)
+				until [[ -z "$ip_number" || "$ip_number" =~ ^[0-9]+$ && "$ip_number" -le "$number_of_ip" ]]; do
+					echo "$ip_number: invalid selection."
+					read -rp "IPv4 address [1]: " ip_number
+				done
+				[[ -z "$ip_number" ]] && ip_number="1"
+				ip=$(ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}' | sed -n "$ip_number"p)
+			fi
 		fi
 	fi
 	# If $ip is a private IP address, the server must be behind NAT
