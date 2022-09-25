@@ -257,7 +257,7 @@ AllowedIPs = 0.0.0.0/0, ::/0
 Endpoint = $(grep '^# ENDPOINT' /etc/wireguard/wg0.conf | cut -d " " -f 3):$(grep ListenPort /etc/wireguard/wg0.conf | cut -d " " -f 3)
 PersistentKeepalive = 25
 EOF
-	if [ "$export_to_home_dir" = "1" ]; then
+	if [ "$export_to_home_dir" = 1 ]; then
 		chown "$SUDO_USER:$SUDO_USER" "$export_dir$client".conf
 	fi
 	chmod 600 "$export_dir$client".conf
@@ -321,7 +321,7 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 		fi
 	fi
 	# If $ip is a private IP address, the server must be behind NAT
-	if echo "$ip" | grep -qE '^(10\.|172\.1[6789]\.|172\.2[0-9]\.|172\.3[01]\.|192\.168)'; then
+	if printf '%s' "$ip" | grep -qE '^(10|127|172\.(1[6-9]|2[0-9]|3[0-1])|192\.168|169\.254)\.'; then
 		find_public_ip
 		if [ -z "$get_public_ip" ]; then
 			echo
