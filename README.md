@@ -72,6 +72,7 @@ List of enhancements over Nyr/wireguard-install.
 
 - Improved compatibility with Setup IPsec VPN
 - Improved script reliability, user input and output
+- Supports listing existing VPN clients
 - Supports custom DNS server(s) for VPN clients
 - Optimized `sysctl` settings for improved VPN performance
 - Improved creation of client config files when using `sudo`
