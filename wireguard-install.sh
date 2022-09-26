@@ -572,11 +572,12 @@ else
 	echo
 	echo "Select an option:"
 	echo "   1) Add a new client"
-	echo "   2) Remove an existing client"
-	echo "   3) Remove WireGuard"
-	echo "   4) Exit"
+	echo "   2) List existing clients"
+	echo "   3) Remove an existing client"
+	echo "   4) Remove WireGuard"
+	echo "   5) Exit"
 	read -rp "Option: " option
-	until [[ "$option" =~ ^[1-4]$ ]]; do
+	until [[ "$option" =~ ^[1-5]$ ]]; do
 		echo "$option: invalid selection."
 		read -rp "Option: " option
 	done
@@ -607,8 +608,18 @@ else
 			exit
 		;;
 		2)
-			# This option could be documented a bit better and maybe even be simplified
-			# ...but what can I say, I want some sleep too
+			echo
+			echo "Checking for existing client(s)..."
+			number_of_clients=$(grep -c '^# BEGIN_PEER' /etc/wireguard/wg0.conf)
+			if [[ "$number_of_clients" = 0 ]]; then
+				echo
+				echo "There are no existing clients!"
+				exit
+			fi
+			echo
+			grep '^# BEGIN_PEER' /etc/wireguard/wg0.conf | cut -d ' ' -f 3
+		;;
+		3)
 			number_of_clients=$(grep -c '^# BEGIN_PEER' /etc/wireguard/wg0.conf)
 			if [[ "$number_of_clients" = 0 ]]; then
 				echo
@@ -654,7 +665,7 @@ else
 			fi
 			exit
 		;;
-		3)
+		4)
 			echo
 			read -rp "Confirm WireGuard removal? [y/N]: " remove
 			until [[ "$remove" =~ ^[yYnN]*$ ]]; do
@@ -743,7 +754,7 @@ else
 			fi
 			exit
 		;;
-		4)
+		5)
 			exit
 		;;
 	esac
