@@ -617,7 +617,12 @@ else
 				exit
 			fi
 			echo
-			grep '^# BEGIN_PEER' /etc/wireguard/wg0.conf | cut -d ' ' -f 3
+			grep '^# BEGIN_PEER' /etc/wireguard/wg0.conf | cut -d ' ' -f 3 | nl -s ') '
+			if [ "$number_of_clients" = 1 ]; then
+				printf '\n%s\n' "Total: 1 client"
+			elif [ -n "$number_of_clients" ]; then
+				printf '\n%s\n' "Total: $number_of_clients clients"
+			fi
 		;;
 		3)
 			number_of_clients=$(grep -c '^# BEGIN_PEER' /etc/wireguard/wg0.conf)
