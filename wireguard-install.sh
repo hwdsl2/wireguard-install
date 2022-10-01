@@ -111,12 +111,12 @@ find_public_ip() {
 	fi
 }
 
-abort_and_exit () {
+abort_and_exit() {
 	echo "Abort. No changes were made." >&2
 	exit 1
 }
 
-get_export_dir () {
+get_export_dir() {
 	export_to_home_dir=0
 	export_dir=~/
 	if [ -n "$SUDO_USER" ] && getent group "$SUDO_USER" >/dev/null 2>&1; then
@@ -128,7 +128,7 @@ get_export_dir () {
 	fi
 }
 
-update_sysctl () {
+update_sysctl() {
 	# Enable net.ipv4.ip_forward for the system
 	echo 'net.ipv4.ip_forward=1' > /etc/sysctl.d/99-wireguard-forward.conf
 	if [[ -n "$ip6" ]]; then
@@ -157,20 +157,25 @@ EOF
 	sysctl -e -q -p /etc/sysctl.d/99-wireguard-optimize.conf
 }
 
-new_client_dns () {
-	echo "Select a DNS server for the client:"
-	echo "   1) Current system resolvers"
-	echo "   2) Google Public DNS"
-	echo "   3) Cloudflare DNS"
-	echo "   4) OpenDNS"
-	echo "   5) Quad9"
-	echo "   6) AdGuard DNS"
-	echo "   7) Custom"
-	read -rp "DNS server [2]: " dns
-	until [[ -z "$dns" || "$dns" =~ ^[1-7]$ ]]; do
-		echo "$dns: invalid selection."
+new_client_dns() {
+	if [ "$auto" = 0 ]; then
+		echo
+		echo "Select a DNS server for the client:"
+		echo "   1) Current system resolvers"
+		echo "   2) Google Public DNS"
+		echo "   3) Cloudflare DNS"
+		echo "   4) OpenDNS"
+		echo "   5) Quad9"
+		echo "   6) AdGuard DNS"
+		echo "   7) Custom"
 		read -rp "DNS server [2]: " dns
-	done
+		until [[ -z "$dns" || "$dns" =~ ^[1-7]$ ]]; do
+			echo "$dns: invalid selection."
+			read -rp "DNS server [2]: " dns
+		done
+	else
+		dns=2
+	fi
 		# DNS
 	case "$dns" in
 		1)
@@ -219,7 +224,7 @@ new_client_dns () {
 	esac
 }
 
-new_client_setup () {
+new_client_setup() {
 	get_export_dir
 	# Given a list of the assigned internal IPv4 addresses, obtain the lowest still
 	# available octet. Important to start looking at 2, because 1 is our gateway.
@@ -271,10 +276,25 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 			exit 1
 		fi
 	fi
+	auto=0
+	while [ "$#" -gt 0 ]; do
+		case $1 in
+			--auto)
+				auto=1
+				shift
+				;;
+			*)
+				echo "Unknown parameter: $1" >&2
+				exit 1
+				;;
+		esac
+	done
 	# Detect some Debian minimal setups where neither wget nor curl are installed
 	if ! hash wget 2>/dev/null && ! hash curl 2>/dev/null; then
-		echo "Wget is required to use this installer."
-		read -n1 -r -p "Press any key to install Wget and continue..."
+		if [ "$auto" = 0 ]; then
+			echo "Wget is required to use this installer."
+			read -n1 -r -p "Press any key to install Wget and continue..."
+		fi
 		export DEBIAN_FRONTEND=noninteractive
 		(
 			set -x
@@ -282,11 +302,16 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 			apt-get -yqq install wget >/dev/null
 		) || exit 1
 	fi
-	echo
-	echo 'Welcome to this WireGuard VPN server installer!'
-	echo
-	echo 'I need to ask you a few questions before starting setup.'
-	echo 'You can use the default options and just press enter if you are OK with them.'
+	if [ "$auto" = 0 ]; then
+		echo
+		echo 'Welcome to this WireGuard VPN server installer!'
+		echo
+		echo 'I need to ask you a few questions before starting setup.'
+		echo 'You can use the default options and just press enter if you are OK with them.'
+	else
+		echo
+		echo 'Starting WireGuard setup using default options.'
+	fi
 	# If system has a single IPv4, it is selected automatically.
 	if [[ $(ip -4 addr | grep inet | grep -vEc '127(\.[0-9]{1,3}){3}') -eq 1 ]]; then
 		ip=$(ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}')
@@ -306,16 +331,20 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 				done <<< "$ip_list"
 			fi
 			if [ "$ip_match" = 0 ]; then
-				number_of_ip=$(ip -4 addr | grep inet | grep -vEc '127(\.[0-9]{1,3}){3}')
-				echo
-				echo "Which IPv4 address should be used?"
-				ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}' | nl -s ') '
-				read -rp "IPv4 address [1]: " ip_number
-				until [[ -z "$ip_number" || "$ip_number" =~ ^[0-9]+$ && "$ip_number" -le "$number_of_ip" ]]; do
-					echo "$ip_number: invalid selection."
+				if [ "$auto" = 0 ]; then
+					echo
+					echo "Which IPv4 address should be used?"
+					number_of_ip=$(ip -4 addr | grep inet | grep -vEc '127(\.[0-9]{1,3}){3}')
+					ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}' | nl -s ') '
 					read -rp "IPv4 address [1]: " ip_number
-				done
-				[[ -z "$ip_number" ]] && ip_number="1"
+					until [[ -z "$ip_number" || "$ip_number" =~ ^[0-9]+$ && "$ip_number" -le "$number_of_ip" ]]; do
+						echo "$ip_number: invalid selection."
+						read -rp "IPv4 address [1]: " ip_number
+					done
+					[[ -z "$ip_number" ]] && ip_number=1
+				else
+					ip_number=1
+				fi
 				ip=$(ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}' | sed -n "$ip_number"p)
 			fi
 		fi
@@ -324,16 +353,30 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 	if printf '%s' "$ip" | grep -qE '^(10|127|172\.(1[6-9]|2[0-9]|3[0-1])|192\.168|169\.254)\.'; then
 		find_public_ip
 		if [ -z "$get_public_ip" ]; then
-			echo
-			echo "This server is behind NAT. What is the public IPv4 address?"
-			read -rp "Public IPv4 address: " public_ip
-			until check_ip "$public_ip"; do
-				echo "Invalid input."
+			if [ "$auto" = 0 ]; then
+				echo
+				echo "This server is behind NAT. What is the public IPv4 address?"
 				read -rp "Public IPv4 address: " public_ip
-			done
+				until check_ip "$public_ip"; do
+					echo "Invalid input."
+					read -rp "Public IPv4 address: " public_ip
+				done
+			else
+				echo "Error: Could not detect this server's public IP." >&2
+				echo "Abort. No changes were made." >&2
+				exit 1
+			fi
 		else
 			public_ip="$get_public_ip"
 		fi
+	fi
+	if [ "$auto" != 0 ]; then
+		echo
+		printf '%s' "Server IP: "
+		[ -n "$public_ip" ] && printf '%s\n' "$public_ip" || printf '%s\n' "$ip"
+		echo "Port: UDP/51820"
+		echo "Client name: client"
+		echo "Client DNS: Google Public DNS"
 	fi
 	# If system has a single IPv6, it is selected automatically
 	if [[ $(ip -6 addr | grep -c 'inet6 [23]') -eq 1 ]]; then
@@ -341,49 +384,65 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 	fi
 	# If system has multiple IPv6, ask the user to select one
 	if [[ $(ip -6 addr | grep -c 'inet6 [23]') -gt 1 ]]; then
-		number_of_ip6=$(ip -6 addr | grep -c 'inet6 [23]')
-		echo
-		echo "Which IPv6 address should be used?"
-		ip -6 addr | grep 'inet6 [23]' | cut -d '/' -f 1 | grep -oE '([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}' | nl -s ') '
-		read -rp "IPv6 address [1]: " ip6_number
-		until [[ -z "$ip6_number" || "$ip6_number" =~ ^[0-9]+$ && "$ip6_number" -le "$number_of_ip6" ]]; do
-			echo "$ip6_number: invalid selection."
+		if [ "$auto" = 0 ]; then
+			echo
+			echo "Which IPv6 address should be used?"
+			number_of_ip6=$(ip -6 addr | grep -c 'inet6 [23]')
+			ip -6 addr | grep 'inet6 [23]' | cut -d '/' -f 1 | grep -oE '([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}' | nl -s ') '
 			read -rp "IPv6 address [1]: " ip6_number
-		done
-		[[ -z "$ip6_number" ]] && ip6_number="1"
+			until [[ -z "$ip6_number" || "$ip6_number" =~ ^[0-9]+$ && "$ip6_number" -le "$number_of_ip6" ]]; do
+				echo "$ip6_number: invalid selection."
+				read -rp "IPv6 address [1]: " ip6_number
+			done
+			[[ -z "$ip6_number" ]] && ip6_number=1
+		else
+			ip6_number=1
+		fi
 		ip6=$(ip -6 addr | grep 'inet6 [23]' | cut -d '/' -f 1 | grep -oE '([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}' | sed -n "$ip6_number"p)
 	fi
-	echo
-	echo "What port should WireGuard listen to?"
-	read -rp "Port [51820]: " port
-	until [[ -z "$port" || "$port" =~ ^[0-9]+$ && "$port" -le 65535 ]]; do
-		echo "$port: invalid port."
+	if [ "$auto" = 0 ]; then
+		echo
+		echo "What port should WireGuard listen to?"
 		read -rp "Port [51820]: " port
-	done
-	[[ -z "$port" ]] && port="51820"
-	echo
-	echo "Enter a name for the first client:"
-	read -rp "Name [client]: " unsanitized_client
-	# Allow a limited set of characters to avoid conflicts
-	client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<< "$unsanitized_client")
-	[[ -z "$client" ]] && client="client"
-	echo
+		until [[ -z "$port" || "$port" =~ ^[0-9]+$ && "$port" -le 65535 ]]; do
+			echo "$port: invalid port."
+			read -rp "Port [51820]: " port
+		done
+		[[ -z "$port" ]] && port=51820
+	else
+		port=51820
+	fi
+	if [ "$auto" = 0 ]; then
+		echo
+		echo "Enter a name for the first client:"
+		read -rp "Name [client]: " unsanitized_client
+		# Allow a limited set of characters to avoid conflicts
+		client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<< "$unsanitized_client")
+		[[ -z "$client" ]] && client=client
+	else
+		client=client
+	fi
 	new_client_dns
-	echo
-	echo "WireGuard installation is ready to begin."
+	if [ "$auto" = 0 ]; then
+		echo
+		echo "WireGuard installation is ready to begin."
+	fi
 	# Install a firewall if firewalld or iptables are not already available
 	if ! systemctl is-active --quiet firewalld.service && ! hash iptables 2>/dev/null; then
 		if [[ "$os" == "centos" || "$os" == "fedora" ]]; then
 			firewall="firewalld"
 			# We don't want to silently enable firewalld, so we give a subtle warning
 			# If the user continues, firewalld will be installed and enabled during setup
-			echo "firewalld, which is required to manage routing tables, will also be installed."
+			echo
+			echo "Note: firewalld, which is required to manage routing tables, will also be installed."
 		elif [[ "$os" == "debian" || "$os" == "ubuntu" ]]; then
 			# iptables is way less invasive than firewalld so no warning is given
 			firewall="iptables"
 		fi
 	fi
-	read -n1 -r -p "Press any key to continue..."
+	if [ "$auto" = 0 ]; then
+		read -n1 -r -p "Press any key to continue..."
+	fi
 	# Install WireGuard
 	# Set up the WireGuard kernel module
 	echo
@@ -595,7 +654,6 @@ else
 				[ -z "$unsanitized_client" ] && abort_and_exit
 				client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<< "$unsanitized_client")
 			done
-			echo
 			new_client_dns
 			new_client_setup
 			# Append new client configuration to the WireGuard interface
