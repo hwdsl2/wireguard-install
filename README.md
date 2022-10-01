@@ -12,7 +12,16 @@ A video tutorial in Spanish is available: [Install OpenVPN/WireGuard on Ubuntu 2
 
 ## Installation
 
-Run the script on your Linux server\* and follow the prompts:
+Run the script on your Linux server\* and follow the prompts.
+
+**Option 1:** Auto install using default options.
+
+```bash
+wget https://get.vpnsetup.net/wg -O wireguard.sh
+sudo bash wireguard.sh --auto
+```
+
+**Option 2:** Interactive install using custom options.
 
 ```bash
 wget https://get.vpnsetup.net/wg -O wireguard.sh
@@ -27,7 +36,11 @@ Alternative commands.
 You may also use `curl` to download:
 
 ```bash
+# Download the script
 curl -fL https://get.vpnsetup.net/wg -o wireguard.sh
+# Option 1: Auto install using default options
+sudo bash wireguard.sh --auto
+# Option 2: Interactive install using custom options
 sudo bash wireguard.sh
 ```
 
@@ -72,6 +85,7 @@ List of enhancements over Nyr/wireguard-install.
 
 - Improved compatibility with Setup IPsec VPN
 - Improved script reliability, user input and output
+- Supports auto install using default options
 - Supports listing existing VPN clients
 - Supports custom DNS server(s) for VPN clients
 - Optimized `sysctl` settings for improved VPN performance

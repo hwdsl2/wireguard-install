@@ -12,7 +12,16 @@
 
 ## 安装说明
 
-在你的 Linux 服务器\* 上运行脚本，并按提示操作：
+在你的 Linux 服务器\* 上运行脚本，并按提示操作。
+
+**选项 1:** 使用默认选项自动安装。
+
+```bash
+wget https://get.vpnsetup.net/wg -O wireguard.sh
+sudo bash wireguard.sh --auto
+```
+
+**选项 2:** 使用自定义选项进行交互式安装。
 
 ```bash
 wget https://get.vpnsetup.net/wg -O wireguard.sh
@@ -27,7 +36,11 @@ sudo bash wireguard.sh
 你也可以使用 `curl` 下载：
 
 ```bash
+# 下载脚本
 curl -fL https://get.vpnsetup.net/wg -o wireguard.sh
+# 选项 1: 使用默认选项自动安装
+sudo bash wireguard.sh --auto
+# 选项 2: 使用自定义选项进行交互式安装
 sudo bash wireguard.sh
 ```
 
@@ -72,6 +85,7 @@ https://gitlab.com/hwdsl2/wireguard-install/-/raw/master/wireguard-install.sh
 
 - 改进了与 Setup IPsec VPN 的兼容性
 - 改进了脚本的可靠性，用户输入和输出
+- 支持使用默认选项自动安装
 - 支持列出现有的 VPN 客户端
 - 支持为 VPN 客户端自定义 DNS 服务器
 - 优化 `sysctl` 设置以提高 VPN 性能
