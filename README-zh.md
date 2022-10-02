@@ -14,7 +14,7 @@
 
 在你的 Linux 服务器\* 上运行脚本，并按提示操作。
 
-**选项 1:** 使用默认选项自动安装。
+**选项 1:** 使用默认选项自动安装 WireGuard。
 
 ```bash
 wget https://get.vpnsetup.net/wg -O wireguard.sh
@@ -38,7 +38,7 @@ sudo bash wireguard.sh
 ```bash
 # 下载脚本
 curl -fL https://get.vpnsetup.net/wg -o wireguard.sh
-# 选项 1: 使用默认选项自动安装
+# 选项 1: 使用默认选项自动安装 WireGuard
 sudo bash wireguard.sh --auto
 # 选项 2: 使用自定义选项进行交互式安装
 sudo bash wireguard.sh
