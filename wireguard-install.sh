@@ -199,6 +199,23 @@ EOF
 	chmod 600 "$export_dir$client".conf
 }
 
+show_usage() {
+	if [ -n "$1" ]; then
+		echo "Error: $1" >&2
+	fi
+cat 1>&2 <<EOF
+
+Usage: bash $0 [options]
+
+Options:
+  --auto      auto install WireGuard using default options
+  -h, --help  show this help message and exit
+
+To customize install options, run this script without arguments.
+EOF
+	exit 1
+}
+
 wgsetup() {
 
 # Detect Debian users running the script with "sh" instead of bash
@@ -285,9 +302,11 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 				auto=1
 				shift
 				;;
+			-h|--help)
+				show_usage
+				;;
 			*)
-				echo "Unknown parameter: $1" >&2
-				exit 1
+				show_usage "Unknown parameter: $1"
 				;;
 		esac
 	done
