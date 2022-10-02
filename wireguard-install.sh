@@ -32,16 +32,6 @@ check_ip() {
 	printf '%s' "$1" | tr -d '\n' | grep -Eq "$IP_REGEX"
 }
 
-find_public_ip() {
-	ip_url1="http://ipv4.icanhazip.com"
-	ip_url2="http://ip1.dynupdate.no-ip.com"
-	# Get public IP and sanitize with grep
-	get_public_ip=$(grep -m 1 -oE '^[0-9]{1,3}(\.[0-9]{1,3}){3}$' <<< "$(wget -T 10 -t 1 -4qO- "$ip_url1" || curl -m 10 -4Ls "$ip_url1")")
-	if [ -z "$get_public_ip" ]; then
-		get_public_ip=$(grep -m 1 -oE '^[0-9]{1,3}(\.[0-9]{1,3}){3}$' <<< "$(wget -T 10 -t 1 -4qO- "$ip_url2" || curl -m 10 -4Ls "$ip_url2")")
-	fi
-}
-
 abort_and_exit() {
 	echo "Abort. No changes were made." >&2
 	exit 1
@@ -56,6 +46,16 @@ get_export_dir() {
 			export_dir="$user_home_dir/"
 			export_to_home_dir=1
 		fi
+	fi
+}
+
+find_public_ip() {
+	ip_url1="http://ipv4.icanhazip.com"
+	ip_url2="http://ip1.dynupdate.no-ip.com"
+	# Get public IP and sanitize with grep
+	get_public_ip=$(grep -m 1 -oE '^[0-9]{1,3}(\.[0-9]{1,3}){3}$' <<< "$(wget -T 10 -t 1 -4qO- "$ip_url1" || curl -m 10 -4Ls "$ip_url1")")
+	if ! check_ip "$get_public_ip"; then
+		get_public_ip=$(grep -m 1 -oE '^[0-9]{1,3}(\.[0-9]{1,3}){3}$' <<< "$(wget -T 10 -t 1 -4qO- "$ip_url2" || curl -m 10 -4Ls "$ip_url2")")
 	fi
 }
 
@@ -270,6 +270,7 @@ if systemd-detect-virt -cq 2>/dev/null; then
 	exit 1
 fi
 
+auto=0
 if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 	if [ "$os" = "centos" ]; then
 		if grep -qs "hwdsl2 VPN script" /etc/sysconfig/nftables.conf \
@@ -278,7 +279,6 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 			exit 1
 		fi
 	fi
-	auto=0
 	while [ "$#" -gt 0 ]; do
 		case $1 in
 			--auto)
@@ -354,7 +354,7 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 	# If $ip is a private IP address, the server must be behind NAT
 	if printf '%s' "$ip" | grep -qE '^(10|127|172\.(1[6-9]|2[0-9]|3[0-1])|192\.168|169\.254)\.'; then
 		find_public_ip
-		if [ -z "$get_public_ip" ]; then
+		if ! check_ip "$get_public_ip"; then
 			if [ "$auto" = 0 ]; then
 				echo
 				echo "This server is behind NAT. What is the public IPv4 address?"
