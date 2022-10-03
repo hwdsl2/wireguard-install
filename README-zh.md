@@ -17,14 +17,28 @@
 **选项 1:** 使用默认选项自动安装 WireGuard。
 
 ```bash
-wget https://get.vpnsetup.net/wg -O wireguard.sh
+wget -O wireguard.sh https://get.vpnsetup.net/wg
 sudo bash wireguard.sh --auto
 ```
+
+<details>
+<summary>
+默认选项列表。
+</summary>
+
+```
+端口: UDP/51820
+客户端名称: client
+客户端 DNS: Google Public DNS
+```
+</details>
+
+对于有外部防火墙的服务器（比如 [EC2](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-security-groups.html)/[GCE](https://cloud.google.com/vpc/docs/firewalls)），请为 VPN 打开 UDP 端口 51820。
 
 **选项 2:** 使用自定义选项进行交互式安装。
 
 ```bash
-wget https://get.vpnsetup.net/wg -O wireguard.sh
+wget -O wireguard.sh https://get.vpnsetup.net/wg
 sudo bash wireguard.sh
 ```
 
@@ -37,7 +51,7 @@ sudo bash wireguard.sh
 
 ```bash
 # 下载脚本
-curl -fL https://get.vpnsetup.net/wg -o wireguard.sh
+curl -fL -o wireguard.sh https://get.vpnsetup.net/wg
 # 选项 1: 使用默认选项自动安装 WireGuard
 sudo bash wireguard.sh --auto
 # 选项 2: 使用自定义选项进行交互式安装
@@ -60,7 +74,9 @@ https://gitlab.com/hwdsl2/wireguard-install/-/raw/master/wireguard-install.sh
 
 安装完成后，你可以再次运行脚本来管理用户或者卸载 WireGuard。
 
-[WireGuard VPN 客户端](https://www.wireguard.com/install/) 在 Windows, macOS, iOS 和 Android 上可用。要添加 VPN 连接，请在你的移动设备上打开 WireGuard 应用程序，单击 "添加" 按钮，然后扫描脚本输出中生成的二维码。对于 Windows 和 macOS，首先将生成的 `.conf` 文件安全地传送到你的计算机，然后打开 WireGuard 并导入文件。
+配置你的计算机或其它设备使用 VPN。请参见：
+
+**[配置 WireGuard VPN 客户端](docs/clients-zh.md)**
 
 开始使用自己的专属 VPN! :sparkles::tada::rocket::sparkles:
 
