@@ -1,0 +1,27 @@
+#
+# Copyright (C) 2022 Lin Song <linsongui@gmail.com>
+
+name: build
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '**.sh'
+      - '.github/workflows/main.yml'
+      - '.github/workflows/test_set_1.yml'
+      - '.github/workflows/test_set_2.yml'
+      - '.github/workflows/test_set_3.yml'
+
+jobs:
+  test_set_1:
+    if: github.repository_owner == 'hwdsl2'
+    uses: ./.github/workflows/test_set_1.yml
+
+  test_set_2:
+    if: github.repository_owner == 'hwdsl2'
+    uses: ./.github/workflows/test_set_2.yml
+
+  test_set_3:
+    if: github.repository_owner == 'hwdsl2'
+    uses: ./.github/workflows/test_set_3.yml

@@ -1,0 +1,40 @@
+#
+# Copyright (C) 2022 Lin Song <linsongui@gmail.com>
+
+name: test_set_3
+
+on: workflow_call
+
+jobs:
+  test_set_3:
+    if: github.repository_owner == 'hwdsl2'
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-20.04]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579 # 2.4.0
+        with:
+          persist-credentials: false
+      - name: Test
+        run: |
+          set -ex
+
+          mkdir -p /opt/src
+          cd /opt/src
+          ls -ld "$GITHUB_WORKSPACE/wireguard-install.sh"
+
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get -yqq update
+          sudo apt-get -yqq dist-upgrade
+          sudo apt-get -yqq install wget rsyslog
+          sudo service rsyslog start
+
+          cp -f "$GITHUB_WORKSPACE"/wireguard-install.sh ./wireguard.sh
+
+          sudo bash wireguard.sh --auto
+
+          sudo netstat -anpu | grep ':51820'
+          sudo systemctl status wg-quick@wg0
+          ls -ld ~/client.conf

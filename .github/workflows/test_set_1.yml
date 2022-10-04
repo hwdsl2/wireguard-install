@@ -1,0 +1,115 @@
+#
+# Copyright (C) 2022 Lin Song <linsongui@gmail.com>
+
+name: test_set_1
+
+on: workflow_call
+
+jobs:
+  test_set_1:
+    runs-on: ubuntu-20.04
+    if: github.repository_owner == 'hwdsl2'
+    strategy:
+      matrix:
+        os_version: ["centos:9s", "centos:8s", "centos:7", "rockylinux:9", "rockylinux:8", "almalinux:9", "almalinux:8"]
+      fail-fast: false
+    env:
+      OS_VERSION: ${{ matrix.os_version }}
+    steps:
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579 # 2.4.0
+        with:
+          persist-credentials: false
+      - name: Build
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/testing/${OS_VERSION//:}"
+          cd "$GITHUB_WORKSPACE/testing/${OS_VERSION//:}"
+
+          mkdir -p scripts
+          ls -ld "$GITHUB_WORKSPACE/wireguard-install.sh"
+          cp -f "$GITHUB_WORKSPACE"/*.sh scripts/
+
+          cat > run.sh <<'EOF'
+          #!/bin/bash
+          set -eEx
+
+          trap 'catch $? $LINENO' ERR
+
+          catch() {
+            echo "Error $1 occurred on line $2."
+            cat -n -- "$0" | tail -n+"$(($2 - 3))" | head -n7
+            exit 1
+          }
+
+          cd /opt/src
+          yum -y -q update
+          yum -y -q install wget rsyslog kmod procps-ng iproute net-tools
+          systemctl start rsyslog
+          rm -f /usr/bin/systemd-detect-virt
+
+          cp -f /opt/src/scripts/wireguard-install.sh ./wireguard.sh
+
+          bash wireguard.sh --auto
+
+          netstat -anpu | grep ':51820'
+          systemctl status wg-quick@wg0
+          ls -ld ~/client.conf
+
+          exit 0
+          EOF
+
+          if [ "$OS_VERSION" = "centos:9s" ]; then
+            echo "FROM quay.io/centos/centos:stream9" > Dockerfile
+          elif [ "$OS_VERSION" = "centos:8s" ]; then
+            echo "FROM quay.io/centos/centos:stream8" > Dockerfile
+          else
+            echo "FROM $OS_VERSION" > Dockerfile
+          fi
+
+          cat >> Dockerfile <<'EOF'
+
+          ENV container docker
+          WORKDIR /opt/src
+
+          EOF
+
+          if [ "$OS_VERSION" = "centos:9s" ]; then
+            echo "RUN yum -y -q install systemd" >> Dockerfile
+          fi
+
+          cat >> Dockerfile <<'EOF'
+
+          RUN (cd /lib/systemd/system/sysinit.target.wants/; for i in *; do [ "$i" = \
+          systemd-tmpfiles-setup.service ] || rm -f "$i"; done); \
+          rm -f /lib/systemd/system/multi-user.target.wants/*; \
+          rm -f /etc/systemd/system/*.wants/*; \
+          rm -f /lib/systemd/system/local-fs.target.wants/*; \
+          rm -f /lib/systemd/system/sockets.target.wants/*udev*; \
+          rm -f /lib/systemd/system/sockets.target.wants/*initctl*; \
+          rm -f /lib/systemd/system/basic.target.wants/*; \
+          rm -f /lib/systemd/system/anaconda.target.wants/*;
+
+          COPY scripts/ /opt/src/scripts/
+          COPY ./run.sh /opt/src/run.sh
+          RUN chmod 755 /opt/src/run.sh
+
+          VOLUME [ "/sys/fs/cgroup" ]
+
+          CMD ["/sbin/init"]
+          EOF
+          cat Dockerfile
+          cat run.sh
+          docker build -t "${OS_VERSION//:}-test" .
+
+      - name: Test
+        run: |
+          docker run -d --name "${OS_VERSION//:}-test-1" -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+            --privileged "${OS_VERSION//:}-test"
+          sleep 5
+          docker exec "${OS_VERSION//:}-test-1" /opt/src/run.sh "${OS_VERSION::6}"
+
+      - name: Clear
+        if: always()
+        run: |
+          rm -rf "$GITHUB_WORKSPACE/testing/${OS_VERSION//:}"
+          docker rm -f "${OS_VERSION//:}-test-1" || true
+          docker rmi "${OS_VERSION//:}-test" || true

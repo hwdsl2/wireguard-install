@@ -1,0 +1,45 @@
+#
+# Copyright (C) 2022 Lin Song <linsongui@gmail.com>
+
+name: test_set_2
+
+on: workflow_call
+
+jobs:
+  test_set_2:
+    runs-on: ubuntu-20.04
+    if: github.repository_owner == 'hwdsl2'
+    strategy:
+      matrix:
+        os_version: ["debian:11", "debian:10"]
+      fail-fast: false
+    container:
+      image: ${{ matrix.os_version }}
+      options: --cap-add=NET_ADMIN
+    steps:
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579 # 2.4.0
+        with:
+          persist-credentials: false
+      - name: Test
+        run: |
+          set -ex
+
+          mkdir -p /opt/src
+          cd /opt/src
+          ls -ld "$GITHUB_WORKSPACE/wireguard-install.sh"
+
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get -yqq update
+          apt-get -yqq dist-upgrade
+          apt-get -yqq install wget rsyslog kmod procps iproute2 net-tools
+          if grep -qs bookworm /etc/debian_version; then
+            rsyslogd
+          else
+            service rsyslog start
+          fi
+
+          cp -f "$GITHUB_WORKSPACE"/wireguard-install.sh ./wireguard.sh
+
+          bash wireguard.sh --auto
+
+          ls -ld ~/client.conf
