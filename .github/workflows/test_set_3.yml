@@ -38,3 +38,58 @@ jobs:
           sudo netstat -anpu | grep ':51820'
           sudo systemctl status wg-quick@wg0
           ls -ld ~/client.conf
+
+          sudo bash wireguard.sh <<ANSWERS
+          1
+          client2
+
+          ANSWERS
+
+          ls -ld ~/client2.conf
+
+          sudo bash wireguard.sh <<ANSWERS
+          2
+          ANSWERS
+
+          sudo bash wireguard.sh <<ANSWERS | grep -i "2 clients"
+          2
+          ANSWERS
+
+          sudo bash wireguard.sh <<ANSWERS
+          3
+          2
+          y
+          ANSWERS
+
+          ls -ld ~/client2.conf && exit 1
+
+          sudo bash wireguard.sh <<ANSWERS | grep -i "1 client"
+          2
+          ANSWERS
+
+          sudo bash wireguard.sh <<ANSWERS
+          4
+          y
+          ANSWERS
+
+          sudo netstat -anpu | grep ':51820' && exit 1
+          rm -f ~/client*.conf
+
+          sudo bash wireguard.sh <<ANSWERS
+
+
+
+
+          ANSWERS
+
+          sudo netstat -anpu | grep ':51820'
+          sudo systemctl status wg-quick@wg0
+          ls -ld ~/client.conf
+
+          sudo bash wireguard.sh <<ANSWERS
+          4
+          y
+          ANSWERS
+
+          sudo netstat -anpu | grep ':51820' && exit 1
+          rm -f ~/client*.conf

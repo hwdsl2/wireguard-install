@@ -31,7 +31,7 @@ jobs:
           export DEBIAN_FRONTEND=noninteractive
           apt-get -yqq update
           apt-get -yqq dist-upgrade
-          apt-get -yqq install wget rsyslog kmod procps iproute2 net-tools
+          apt-get -yqq install wget rsyslog kmod procps net-tools
           if grep -qs bookworm /etc/debian_version; then
             rsyslogd
           else

@@ -42,7 +42,7 @@ jobs:
 
           cd /opt/src
           yum -y -q update
-          yum -y -q install wget rsyslog kmod procps-ng iproute net-tools
+          yum -y -q install wget rsyslog kmod procps-ng net-tools
           systemctl start rsyslog
           rm -f /usr/bin/systemd-detect-virt
 
@@ -53,6 +53,61 @@ jobs:
           netstat -anpu | grep ':51820'
           systemctl status wg-quick@wg0
           ls -ld ~/client.conf
+
+          bash wireguard.sh <<ANSWERS
+          1
+          client2
+
+          ANSWERS
+
+          ls -ld ~/client2.conf
+
+          bash wireguard.sh <<ANSWERS
+          2
+          ANSWERS
+
+          bash wireguard.sh <<ANSWERS | grep -i "2 clients"
+          2
+          ANSWERS
+
+          bash wireguard.sh <<ANSWERS
+          3
+          2
+          y
+          ANSWERS
+
+          ls -ld ~/client2.conf && exit 1
+
+          bash wireguard.sh <<ANSWERS | grep -i "1 client"
+          2
+          ANSWERS
+
+          bash wireguard.sh <<ANSWERS
+          4
+          y
+          ANSWERS
+
+          netstat -anpu | grep ':51820' && exit 1
+          rm -f ~/client*.conf
+
+          bash wireguard.sh <<ANSWERS
+
+
+
+
+          ANSWERS
+
+          netstat -anpu | grep ':51820'
+          systemctl status wg-quick@wg0
+          ls -ld ~/client.conf
+
+          bash wireguard.sh <<ANSWERS
+          4
+          y
+          ANSWERS
+
+          netstat -anpu | grep ':51820' && exit 1
+          rm -f ~/client*.conf
 
           exit 0
           EOF
