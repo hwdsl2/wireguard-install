@@ -8,24 +8,12 @@
 # Copyright (c) 2022 Lin Song <linsongui@gmail.com>
 # Copyright (c) 2020-2022 Nyr
 #
-# Released under the MIT License.
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of
-# this software and associated documentation files (the "Software"), to deal in
-# the Software without restriction, including without limitation the rights to
-# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-# the Software, and to permit persons to whom the Software is furnished to do so,
-# subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-# FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-# IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+# Released under the MIT License, see the accompanying file LICENSE.txt
+# or https://opensource.org/licenses/MIT
+
+exiterr()  { echo "Error: $1" >&2; exit 1; }
+exiterr2() { exiterr "'apt-get install' failed."; }
+exiterr3() { exiterr "'yum install' failed."; }
 
 check_ip() {
 	IP_REGEX='^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$'
@@ -165,8 +153,7 @@ new_client_setup() {
 	done
 	# Don't break the WireGuard configuration in case the address space is full
 	if [[ "$octet" -eq 255 ]]; then
-		echo "253 clients are already configured. The WireGuard internal subnet is full!"
-		exit 1
+		exiterr "253 clients are already configured. The WireGuard internal subnet is full!"
 	fi
 	key=$(wg genkey)
 	psk=$(wg genpsk)
@@ -236,16 +223,20 @@ EOF
 
 wgsetup() {
 
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+if [ "$(id -u)" != 0 ]; then
+	exiterr "This installer must be run as root. Try 'sudo bash $0'"
+fi
+
 # Detect Debian users running the script with "sh" instead of bash
 if readlink /proc/$$/exe | grep -q "dash"; then
-	echo 'This installer needs to be run with "bash", not "sh".'
-	exit 1
+	exiterr 'This installer needs to be run with "bash", not "sh".'
 fi
 
 # Detect OpenVZ 6
 if [[ $(uname -r | cut -d "." -f 1) -eq 2 ]]; then
-	echo "The system is running an old kernel, which is incompatible with this installer."
-	exit 1
+	exiterr "The system is running an old kernel, which is incompatible with this installer."
 fi
 
 # Detect OS
@@ -263,43 +254,27 @@ elif [[ -e /etc/fedora-release ]]; then
 	os="fedora"
 	os_version=$(grep -oE '[0-9]+' /etc/fedora-release | head -1)
 else
-	echo "This installer seems to be running on an unsupported distribution.
+	exiterr "This installer seems to be running on an unsupported distribution.
 Supported distros are Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS and Fedora."
-	exit 1
 fi
 
 if [[ "$os" == "ubuntu" && "$os_version" -lt 1804 ]]; then
-	echo "Ubuntu 18.04 or higher is required to use this installer.
+	exiterr "Ubuntu 18.04 or higher is required to use this installer.
 This version of Ubuntu is too old and unsupported."
-	exit 1
 fi
 
 if [[ "$os" == "debian" && "$os_version" -lt 10 ]]; then
-	echo "Debian 10 or higher is required to use this installer.
+	exiterr "Debian 10 or higher is required to use this installer.
 This version of Debian is too old and unsupported."
-	exit 1
 fi
 
 if [[ "$os" == "centos" && "$os_version" -lt 7 ]]; then
-	echo "CentOS 7 or higher is required to use this installer.
+	exiterr "CentOS 7 or higher is required to use this installer.
 This version of CentOS is too old and unsupported."
-	exit 1
-fi
-
-# Detect environments where $PATH does not include the sbin directories
-if ! grep -q sbin <<< "$PATH"; then
-	echo '$PATH does not include sbin. Try using "su -" instead of "su".'
-	exit 1
-fi
-
-if [ "$(id -u)" != 0 ]; then
-	echo "This installer must be run as root. Try 'sudo bash $0'"
-	exit 1
 fi
 
 if systemd-detect-virt -cq 2>/dev/null; then
-	echo "This system is running inside a container, which is not supported by this installer."
-	exit 1
+	exiterr "This system is running inside a container, which is not supported by this installer."
 fi
 
 auto=0
@@ -307,8 +282,7 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 	if [ "$os" = "centos" ]; then
 		if grep -qs "hwdsl2 VPN script" /etc/sysconfig/nftables.conf \
 			|| systemctl is-active --quiet nftables 2>/dev/null; then
-			echo "This system has nftables enabled, which is not supported by this installer."
-			exit 1
+			exiterr "This system has nftables enabled, which is not supported by this installer."
 		fi
 	fi
 	while [ "$#" -gt 0 ]; do
@@ -336,7 +310,7 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 			set -x
 			apt-get -yqq update || apt-get -yqq update
 			apt-get -yqq install wget >/dev/null
-		) || exit 1
+		) || exiterr2
 	fi
 	if ! hash ip 2>/dev/null; then
 		if [ "$auto" = 0 ]; then
@@ -349,12 +323,12 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 				set -x
 				apt-get -yqq update || apt-get -yqq update
 				apt-get -yqq install iproute2 >/dev/null
-			) || exit 1
+			) || exiterr2
 		else
 			(
 				set -x
 				yum -y -q install iproute >/dev/null
-			) || exit 1
+			) || exiterr3
 		fi
 	fi
 	if [ "$auto" = 0 ]; then
@@ -516,7 +490,7 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 			set -x
 			apt-get -yqq update || apt-get -yqq update
 			apt-get -yqq install wireguard qrencode $firewall >/dev/null
-		) || exit 1
+		) || exiterr2
 	elif [[ "$os" == "debian" && "$os_version" -ge 11 ]]; then
 		# Debian 11 or higher
 		export DEBIAN_FRONTEND=noninteractive
@@ -524,7 +498,7 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 			set -x
 			apt-get -yqq update || apt-get -yqq update
 			apt-get -yqq install wireguard qrencode $firewall >/dev/null
-		) || exit 1
+		) || exiterr2
 	elif [[ "$os" == "debian" && "$os_version" -eq 10 ]]; then
 		# Debian 10
 		if ! grep -qs '^deb .* buster-backports main' /etc/apt/sources.list /etc/apt/sources.list.d/*.list; then
@@ -549,38 +523,38 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 			set -x
 			apt-get -yqq install linux-headers-"$architecture" >/dev/null
 			apt-get -yqq install wireguard qrencode $firewall >/dev/null
-		) || exit 1
+		) || exiterr2
 	elif [[ "$os" == "centos" && "$os_version" -eq 9 ]]; then
 		# CentOS 9
 		(
 			set -x
 			yum -y -q install epel-release >/dev/null
-			yum -y -q install wireguard-tools qrencode $firewall >/dev/null
-		) || exit 1
+			yum -y -q install wireguard-tools qrencode $firewall >/dev/null 2>&1
+		) || exiterr3
 		mkdir -p /etc/wireguard/
 	elif [[ "$os" == "centos" && "$os_version" -eq 8 ]]; then
 		# CentOS 8
 		(
 			set -x
 			yum -y -q install epel-release elrepo-release >/dev/null
-			yum -y -q install kmod-wireguard wireguard-tools qrencode $firewall >/dev/null
-		) || exit 1
+			yum -y -q install kmod-wireguard wireguard-tools qrencode $firewall >/dev/null 2>&1
+		) || exiterr3
 		mkdir -p /etc/wireguard/
 	elif [[ "$os" == "centos" && "$os_version" -eq 7 ]]; then
 		# CentOS 7
 		(
 			set -x
 			yum -y -q install epel-release https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm >/dev/null
-			yum -y -q install yum-plugin-elrepo >/dev/null
-			yum -y -q install kmod-wireguard wireguard-tools qrencode $firewall >/dev/null
-		) || exit 1
+			yum -y -q install yum-plugin-elrepo >/dev/null 2>&1
+			yum -y -q install kmod-wireguard wireguard-tools qrencode $firewall >/dev/null 2>&1
+		) || exiterr3
 		mkdir -p /etc/wireguard/
 	elif [[ "$os" == "fedora" ]]; then
 		# Fedora
 		(
 			set -x
 			dnf install -y wireguard-tools qrencode $firewall >/dev/null
-		) || exit 1
+		) || exiterr "'dnf install' failed."
 		mkdir -p /etc/wireguard/
 	fi
 	# If firewalld was just installed, enable it
