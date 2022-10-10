@@ -1,4 +1,4 @@
-[English](README.md) | [中文](README-zh.md)
+[English](README.md) | [中文](README-zh.md) | [Vídeo en Español](https://www.youtube.com/watch?v=99qtaJU2E2k)
 
 # WireGuard VPN 服务器一键安装脚本
 
@@ -8,18 +8,21 @@
 
 该脚本可让你在几分钟内建立自己的 VPN 服务器，即使你以前没有使用过 WireGuard。[WireGuard](https://www.wireguard.com) 是一种快速且现代的 VPN，其设计目标是易于使用和高性能。
 
-视频教程（西班牙语）：[在 Ubuntu 20.04 上安装 OpenVPN/WireGuard](https://www.youtube.com/watch?v=99qtaJU2E2k)。
-
 [**&raquo; 另见：OpenVPN 服务器一键安装脚本**](https://github.com/hwdsl2/openvpn-install/blob/master/README-zh.md)
 
 ## 安装说明
 
 在你的 Linux 服务器\* 上运行脚本，并按提示操作。
 
-**选项 1:** 使用默认选项自动安装 WireGuard。
+首先下载脚本：
 
 ```bash
 wget -O wireguard.sh https://get.vpnsetup.net/wg
+```
+
+**选项 1:** 使用默认选项自动安装 WireGuard。
+
+```bash
 sudo bash wireguard.sh --auto
 ```
 
@@ -40,25 +43,21 @@ sudo bash wireguard.sh --auto
 **选项 2:** 使用自定义选项进行交互式安装。
 
 ```bash
-wget -O wireguard.sh https://get.vpnsetup.net/wg
 sudo bash wireguard.sh
 ```
 
 <details>
 <summary>
-或者，你也可以使用以下命令。
+如果无法下载，请点这里。
 </summary>
 
 你也可以使用 `curl` 下载：
 
 ```bash
-# 下载脚本
 curl -fL -o wireguard.sh https://get.vpnsetup.net/wg
-# 选项 1: 使用默认选项自动安装 WireGuard
-sudo bash wireguard.sh --auto
-# 选项 2: 使用自定义选项进行交互式安装
-sudo bash wireguard.sh
 ```
+
+然后按照上面的说明安装。
 
 或者，你也可以使用这些链接：
 
