@@ -8,6 +8,16 @@
 
 该脚本可让你在几分钟内建立自己的 VPN 服务器，即使你以前没有使用过 WireGuard。[WireGuard](https://www.wireguard.com) 是一种快速且现代的 VPN，其设计目标是易于使用和高性能。
 
+<details>
+<summary>
+查看脚本的示例输出（终端记录）。
+</summary>
+
+**注：** 此终端记录仅用于演示目的。该记录中的 VPN 凭据 **无效**。
+
+<p align="center"><img src="docs/images/demo1.svg"></p>
+</details>
+
 [**&raquo; 另见：OpenVPN 服务器一键安装脚本**](https://github.com/hwdsl2/openvpn-install/blob/master/README-zh.md)
 
 ## 安装说明
