@@ -34,21 +34,10 @@ sudo bash wireguard.sh --auto
 
 <details>
 <summary>
-List of default options.
-</summary>
-
-```
-Port: UDP/51820
-Client name: client
-Client DNS: Google Public DNS
-```
-</details>
-<details>
-<summary>
 See the script in action (terminal recording).
 </summary>
 
-**Note:** This recording is for demo purposes only. VPN credentials in this recording are **NOT** valid.
+**Note:** This recording is for demo purposes only.
 
 <p align="center"><img src="docs/images/demo1.svg"></p>
 </details>
@@ -94,6 +83,8 @@ Get your computer or device to use the VPN. Please refer to:
 
 **[Configure WireGuard VPN Clients](docs/clients.md)**
 
+**[Download PDF versions of VPN docs (supporters)](https://ko-fi.com/post/Support-this-project-and-get-access-to-supporter-o-O5O7FVF8J)**
+
 Enjoy your very own VPN! :sparkles::tada::rocket::sparkles:
 
 <details>
@@ -103,7 +94,7 @@ Like this project? You can show your support or appreciation.
 
 <a href="https://ko-fi.com/hwdsl2" target="_blank"><img height="36" width="187" src="docs/images/kofi2.png" border="0" alt="Buy Me a Coffee at ko-fi.com" /></a> &nbsp;&nbsp;<a href="https://coindrop.to/hwdsl2" target="_blank"><img src="docs/images/embed-button.png" height="36" width="145" border="0" alt="Coindrop.to me" /></a>
 
-Supporter-only content is available. [Click to see details](https://ko-fi.com/hwdsl2).
+Supporter-only content is available. [Click to see details](https://ko-fi.com/post/Support-this-project-and-get-access-to-supporter-o-O5O7FVF8J).
 </details>
 
 ## Credits
