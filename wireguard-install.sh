@@ -472,19 +472,24 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 			echo
 			echo "Note: firewalld, which is required to manage routing tables, will also be installed."
 		elif [[ "$os" == "debian" || "$os" == "ubuntu" ]]; then
-			# iptables is way less invasive than firewalld so no warning is given
 			firewall="iptables"
 		fi
 	fi
 	if [ "$auto" = 0 ]; then
-		read -n1 -r -p "Press any key to continue..."
+		printf "Do you want to continue? [Y/n] "
+		read -r response
+		case $response in
+			[yY][eE][sS]|[yY]|'')
+				:
+				;;
+			*)
+				abort_and_exit
+				;;
+		esac
 	fi
-	# Install WireGuard
-	# Set up the WireGuard kernel module
 	echo
 	echo "Installing WireGuard, please wait..."
 	if [[ "$os" == "ubuntu" ]]; then
-		# Ubuntu
 		export DEBIAN_FRONTEND=noninteractive
 		(
 			set -x
@@ -492,7 +497,6 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 			apt-get -yqq install wireguard qrencode $firewall >/dev/null
 		) || exiterr2
 	elif [[ "$os" == "debian" && "$os_version" -ge 11 ]]; then
-		# Debian 11 or higher
 		export DEBIAN_FRONTEND=noninteractive
 		(
 			set -x
@@ -500,7 +504,6 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 			apt-get -yqq install wireguard qrencode $firewall >/dev/null
 		) || exiterr2
 	elif [[ "$os" == "debian" && "$os_version" -eq 10 ]]; then
-		# Debian 10
 		if ! grep -qs '^deb .* buster-backports main' /etc/apt/sources.list /etc/apt/sources.list.d/*.list; then
 			echo "deb http://deb.debian.org/debian buster-backports main" >> /etc/apt/sources.list
 		fi
@@ -525,7 +528,6 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 			apt-get -yqq install wireguard qrencode $firewall >/dev/null
 		) || exiterr2
 	elif [[ "$os" == "centos" && "$os_version" -eq 9 ]]; then
-		# CentOS 9
 		(
 			set -x
 			yum -y -q install epel-release >/dev/null
@@ -533,7 +535,6 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 		) || exiterr3
 		mkdir -p /etc/wireguard/
 	elif [[ "$os" == "centos" && "$os_version" -eq 8 ]]; then
-		# CentOS 8
 		(
 			set -x
 			yum -y -q install epel-release elrepo-release >/dev/null
@@ -541,7 +542,6 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 		) || exiterr3
 		mkdir -p /etc/wireguard/
 	elif [[ "$os" == "centos" && "$os_version" -eq 7 ]]; then
-		# CentOS 7
 		(
 			set -x
 			yum -y -q install epel-release https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm >/dev/null
@@ -550,7 +550,6 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 		) || exiterr3
 		mkdir -p /etc/wireguard/
 	elif [[ "$os" == "fedora" ]]; then
-		# Fedora
 		(
 			set -x
 			dnf install -y wireguard-tools qrencode $firewall >/dev/null
@@ -579,8 +578,7 @@ EOF
 	chmod 600 /etc/wireguard/wg0.conf
 	update_sysctl
 	if systemctl is-active --quiet firewalld.service; then
-		# Using both permanent and not permanent rules to avoid a firewalld
-		# reload.
+		# Using both permanent and not permanent rules to avoid a firewalld reload
 		firewall-cmd -q --add-port="$port"/udp
 		firewall-cmd -q --zone=trusted --add-source=10.7.0.0/24
 		firewall-cmd -q --permanent --add-port="$port"/udp
@@ -804,42 +802,36 @@ else
 					echo 0 > /proc/sys/net/ipv6/conf/all/forwarding
 				fi
 				if [[ "$os" == "ubuntu" ]]; then
-					# Ubuntu
 					(
 						set -x
 						rm -rf /etc/wireguard/
 						apt-get remove --purge -y wireguard wireguard-tools >/dev/null
 					)
 				elif [[ "$os" == "debian" && "$os_version" -ge 11 ]]; then
-					# Debian 11 or higher
 					(
 						set -x
 						rm -rf /etc/wireguard/
 						apt-get remove --purge -y wireguard wireguard-tools >/dev/null
 					)
 				elif [[ "$os" == "debian" && "$os_version" -eq 10 ]]; then
-					# Debian 10
 					(
 						set -x
 						rm -rf /etc/wireguard/
 						apt-get remove --purge -y wireguard wireguard-dkms wireguard-tools >/dev/null
 					)
 				elif [[ "$os" == "centos" && "$os_version" -eq 9 ]]; then
-					# CentOS 9
 					(
 						set -x
 						yum -y -q remove wireguard-tools >/dev/null
 						rm -rf /etc/wireguard/
 					)
 				elif [[ "$os" == "centos" && "$os_version" -le 8 ]]; then
-					# CentOS 8 or 7
 					(
 						set -x
 						yum -y -q remove kmod-wireguard wireguard-tools >/dev/null
 						rm -rf /etc/wireguard/
 					)
 				elif [[ "$os" == "fedora" ]]; then
-					# Fedora
 					(
 						set -x
 						dnf remove -y wireguard-tools >/dev/null
