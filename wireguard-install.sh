@@ -48,32 +48,33 @@ find_public_ip() {
 }
 
 update_sysctl() {
+	mkdir -p /etc/sysctl.d
+	conf_fwd="/etc/sysctl.d/99-wireguard-forward.conf"
+	conf_opt="/etc/sysctl.d/99-wireguard-optimize.conf"
 	# Enable net.ipv4.ip_forward for the system
-	echo 'net.ipv4.ip_forward=1' > /etc/sysctl.d/99-wireguard-forward.conf
+	echo 'net.ipv4.ip_forward=1' > "$conf_fwd"
 	if [[ -n "$ip6" ]]; then
 		# Enable net.ipv6.conf.all.forwarding for the system
-		echo "net.ipv6.conf.all.forwarding=1" >> /etc/sysctl.d/99-wireguard-forward.conf
+		echo "net.ipv6.conf.all.forwarding=1" >> "$conf_fwd"
 	fi
 	# Optimize sysctl settings such as TCP buffer sizes
-cat > /etc/sysctl.d/99-wireguard-optimize.conf <<'EOF'
-kernel.msgmnb = 65536
-kernel.msgmax = 65536
-net.core.wmem_max = 16777216
-net.core.rmem_max = 16777216
-net.ipv4.tcp_rmem = 4096 87380 16777216
-net.ipv4.tcp_wmem = 4096 87380 16777216
-EOF
+	base_url="https://github.com/hwdsl2/vpn-extras/releases/download/v1.0.0"
+	conf_url="$base_url/sysctl-wg-$os"
+	[ "$auto" != 0 ] && conf_url="${conf_url}-auto"
+	wget -t 3 -T 30 -q -O "$conf_opt" "$conf_url" 2>/dev/null \
+		|| curl -m 30 -fsL "$conf_url" -o "$conf_opt" 2>/dev/null \
+		|| { /bin/rm -f "$conf_opt"; touch "$conf_opt"; }
 	# Enable TCP BBR congestion control if kernel version >= 4.20
 	if modprobe -q tcp_bbr \
 		&& printf '%s\n%s' "4.20" "$(uname -r)" | sort -C -V; then
-cat >> /etc/sysctl.d/99-wireguard-optimize.conf <<'EOF'
+cat >> "$conf_opt" <<'EOF'
 net.core.default_qdisc = fq
 net.ipv4.tcp_congestion_control = bbr
 EOF
 	fi
 	# Apply sysctl settings
-	sysctl -e -q -p /etc/sysctl.d/99-wireguard-forward.conf
-	sysctl -e -q -p /etc/sysctl.d/99-wireguard-optimize.conf
+	sysctl -e -q -p "$conf_fwd"
+	sysctl -e -q -p "$conf_opt"
 }
 
 new_client_dns() {
@@ -240,7 +241,6 @@ if [[ $(uname -r | cut -d "." -f 1) -eq 2 ]]; then
 fi
 
 # Detect OS
-# $os_version variables aren't always in use, but are kept here for convenience
 if grep -qs "ubuntu" /etc/os-release; then
 	os="ubuntu"
 	os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.')
