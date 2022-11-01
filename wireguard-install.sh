@@ -20,20 +20,101 @@ check_ip() {
 	printf '%s' "$1" | tr -d '\n' | grep -Eq "$IP_REGEX"
 }
 
-abort_and_exit() {
-	echo "Abort. No changes were made." >&2
-	exit 1
+check_os() {
+	if grep -qs "ubuntu" /etc/os-release; then
+		os="ubuntu"
+		os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.')
+	elif [[ -e /etc/debian_version ]]; then
+		os="debian"
+		os_version=$(grep -oE '[0-9]+' /etc/debian_version | head -1)
+	elif [[ -e /etc/almalinux-release || -e /etc/rocky-release || -e /etc/centos-release ]]; then
+		os="centos"
+		os_version=$(grep -shoE '[0-9]+' /etc/almalinux-release /etc/rocky-release /etc/centos-release | head -1)
+	elif [[ -e /etc/fedora-release ]]; then
+		os="fedora"
+		os_version=$(grep -oE '[0-9]+' /etc/fedora-release | head -1)
+	else
+		exiterr "This installer seems to be running on an unsupported distribution.
+Supported distros are Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS and Fedora."
+	fi
 }
 
-get_export_dir() {
-	export_to_home_dir=0
-	export_dir=~/
-	if [ -n "$SUDO_USER" ] && getent group "$SUDO_USER" >/dev/null 2>&1; then
-		user_home_dir=$(getent passwd "$SUDO_USER" 2>/dev/null | cut -d: -f6)
-		if [ -d "$user_home_dir" ] && [ "$user_home_dir" != "/" ]; then
-			export_dir="$user_home_dir/"
-			export_to_home_dir=1
+check_os_ver() {
+	if [[ "$os" == "ubuntu" && "$os_version" -lt 1804 ]]; then
+		exiterr "Ubuntu 18.04 or higher is required to use this installer.
+This version of Ubuntu is too old and unsupported."
+	fi
+
+	if [[ "$os" == "debian" && "$os_version" -lt 10 ]]; then
+		exiterr "Debian 10 or higher is required to use this installer.
+This version of Debian is too old and unsupported."
+	fi
+
+	if [[ "$os" == "centos" && "$os_version" -lt 7 ]]; then
+		exiterr "CentOS 7 or higher is required to use this installer.
+This version of CentOS is too old and unsupported."
+	fi
+}
+
+check_nftables() {
+	if [ "$os" = "centos" ]; then
+		if grep -qs "hwdsl2 VPN script" /etc/sysconfig/nftables.conf \
+			|| systemctl is-active --quiet nftables 2>/dev/null; then
+			exiterr "This system has nftables enabled, which is not supported by this installer."
 		fi
+	fi
+}
+
+install_wget() {
+	# Detect some Debian minimal setups where neither wget nor curl are installed
+	if ! hash wget 2>/dev/null && ! hash curl 2>/dev/null; then
+		if [ "$auto" = 0 ]; then
+			echo "Wget is required to use this installer."
+			read -n1 -r -p "Press any key to install Wget and continue..."
+		fi
+		export DEBIAN_FRONTEND=noninteractive
+		(
+			set -x
+			apt-get -yqq update || apt-get -yqq update
+			apt-get -yqq install wget >/dev/null
+		) || exiterr2
+	fi
+}
+
+install_iproute() {
+	if ! hash ip 2>/dev/null; then
+		if [ "$auto" = 0 ]; then
+			echo "iproute is required to use this installer."
+			read -n1 -r -p "Press any key to install iproute and continue..."
+		fi
+		if [ "$os" = "debian" ] || [ "$os" = "ubuntu" ]; then
+			export DEBIAN_FRONTEND=noninteractive
+			(
+				set -x
+				apt-get -yqq update || apt-get -yqq update
+				apt-get -yqq install iproute2 >/dev/null
+			) || exiterr2
+		else
+			(
+				set -x
+				yum -y -q install iproute >/dev/null
+			) || exiterr3
+		fi
+	fi
+}
+
+show_start_setup() {
+	if [ "$auto" = 0 ]; then
+		echo
+		echo 'Welcome to this WireGuard server installer!'
+		echo 'GitHub: https://github.com/hwdsl2/wireguard-install'
+		echo
+		echo 'I need to ask you a few questions before starting setup.'
+		echo 'You can use the default options and just press enter if you are OK with them.'
+	else
+		show_header
+		echo
+		echo 'Starting WireGuard setup using default options.'
 	fi
 }
 
@@ -47,34 +128,189 @@ find_public_ip() {
 	fi
 }
 
-update_sysctl() {
-	mkdir -p /etc/sysctl.d
-	conf_fwd="/etc/sysctl.d/99-wireguard-forward.conf"
-	conf_opt="/etc/sysctl.d/99-wireguard-optimize.conf"
-	# Enable net.ipv4.ip_forward for the system
-	echo 'net.ipv4.ip_forward=1' > "$conf_fwd"
-	if [[ -n "$ip6" ]]; then
-		# Enable net.ipv6.conf.all.forwarding for the system
-		echo "net.ipv6.conf.all.forwarding=1" >> "$conf_fwd"
+detect_ip() {
+	# If system has a single IPv4, it is selected automatically.
+	if [[ $(ip -4 addr | grep inet | grep -vEc '127(\.[0-9]{1,3}){3}') -eq 1 ]]; then
+		ip=$(ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}')
+	else
+		# Use the IP address on the default route
+		ip=$(ip -4 route get 1 | sed 's/ uid .*//' | awk '{print $NF;exit}' 2>/dev/null)
+		if ! check_ip "$ip"; then
+			find_public_ip
+			ip_match=0
+			if [ -n "$get_public_ip" ]; then
+				ip_list=$(ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}')
+				while IFS= read -r line; do
+					if [ "$line" = "$get_public_ip" ]; then
+						ip_match=1
+						ip="$line"
+					fi
+				done <<< "$ip_list"
+			fi
+			if [ "$ip_match" = 0 ]; then
+				if [ "$auto" = 0 ]; then
+					echo
+					echo "Which IPv4 address should be used?"
+					number_of_ip=$(ip -4 addr | grep inet | grep -vEc '127(\.[0-9]{1,3}){3}')
+					ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}' | nl -s ') '
+					read -rp "IPv4 address [1]: " ip_number
+					until [[ -z "$ip_number" || "$ip_number" =~ ^[0-9]+$ && "$ip_number" -le "$number_of_ip" ]]; do
+						echo "$ip_number: invalid selection."
+						read -rp "IPv4 address [1]: " ip_number
+					done
+					[[ -z "$ip_number" ]] && ip_number=1
+				else
+					ip_number=1
+				fi
+				ip=$(ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}' | sed -n "$ip_number"p)
+			fi
+		fi
 	fi
-	# Optimize sysctl settings such as TCP buffer sizes
-	base_url="https://github.com/hwdsl2/vpn-extras/releases/download/v1.0.0"
-	conf_url="$base_url/sysctl-wg-$os"
-	[ "$auto" != 0 ] && conf_url="${conf_url}-auto"
-	wget -t 3 -T 30 -q -O "$conf_opt" "$conf_url" 2>/dev/null \
-		|| curl -m 30 -fsL "$conf_url" -o "$conf_opt" 2>/dev/null \
-		|| { /bin/rm -f "$conf_opt"; touch "$conf_opt"; }
-	# Enable TCP BBR congestion control if kernel version >= 4.20
-	if modprobe -q tcp_bbr \
-		&& printf '%s\n%s' "4.20" "$(uname -r)" | sort -C -V; then
-cat >> "$conf_opt" <<'EOF'
-net.core.default_qdisc = fq
-net.ipv4.tcp_congestion_control = bbr
-EOF
+	if ! check_ip "$ip"; then
+		echo "Error: Could not detect this server's IP address." >&2
+		echo "Abort. No changes were made." >&2
+		exit 1
 	fi
-	# Apply sysctl settings
-	sysctl -e -q -p "$conf_fwd"
-	sysctl -e -q -p "$conf_opt"
+}
+
+check_nat_ip() {
+	# If $ip is a private IP address, the server must be behind NAT
+	if printf '%s' "$ip" | grep -qE '^(10|127|172\.(1[6-9]|2[0-9]|3[0-1])|192\.168|169\.254)\.'; then
+		find_public_ip
+		if ! check_ip "$get_public_ip"; then
+			if [ "$auto" = 0 ]; then
+				echo
+				echo "This server is behind NAT. What is the public IPv4 address?"
+				read -rp "Public IPv4 address: " public_ip
+				until check_ip "$public_ip"; do
+					echo "Invalid input."
+					read -rp "Public IPv4 address: " public_ip
+				done
+			else
+				echo "Error: Could not detect this server's public IP." >&2
+				echo "Abort. No changes were made." >&2
+				exit 1
+			fi
+		else
+			public_ip="$get_public_ip"
+		fi
+	fi
+}
+
+show_config() {
+	if [ "$auto" != 0 ]; then
+		echo
+		printf '%s' "Server IP: "
+		[ -n "$public_ip" ] && printf '%s\n' "$public_ip" || printf '%s\n' "$ip"
+		echo "Port: UDP/51820"
+		echo "Client name: client"
+		echo "Client DNS: Google Public DNS"
+	fi
+}
+
+detect_ipv6() {
+	# If system has a single IPv6, it is selected automatically
+	if [[ $(ip -6 addr | grep -c 'inet6 [23]') -eq 1 ]]; then
+		ip6=$(ip -6 addr | grep 'inet6 [23]' | cut -d '/' -f 1 | grep -oE '([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}')
+	fi
+	# If system has multiple IPv6, ask the user to select one
+	if [[ $(ip -6 addr | grep -c 'inet6 [23]') -gt 1 ]]; then
+		if [ "$auto" = 0 ]; then
+			echo
+			echo "Which IPv6 address should be used?"
+			number_of_ip6=$(ip -6 addr | grep -c 'inet6 [23]')
+			ip -6 addr | grep 'inet6 [23]' | cut -d '/' -f 1 | grep -oE '([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}' | nl -s ') '
+			read -rp "IPv6 address [1]: " ip6_number
+			until [[ -z "$ip6_number" || "$ip6_number" =~ ^[0-9]+$ && "$ip6_number" -le "$number_of_ip6" ]]; do
+				echo "$ip6_number: invalid selection."
+				read -rp "IPv6 address [1]: " ip6_number
+			done
+			[[ -z "$ip6_number" ]] && ip6_number=1
+		else
+			ip6_number=1
+		fi
+		ip6=$(ip -6 addr | grep 'inet6 [23]' | cut -d '/' -f 1 | grep -oE '([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}' | sed -n "$ip6_number"p)
+	fi
+}
+
+select_port() {
+	if [ "$auto" = 0 ]; then
+		echo
+		echo "What port should WireGuard listen to?"
+		read -rp "Port [51820]: " port
+		until [[ -z "$port" || "$port" =~ ^[0-9]+$ && "$port" -le 65535 ]]; do
+			echo "$port: invalid port."
+			read -rp "Port [51820]: " port
+		done
+		[[ -z "$port" ]] && port=51820
+	else
+		port=51820
+	fi
+}
+
+enter_custom_dns() {
+	read -rp "Enter primary DNS server: " dns1
+	until check_ip "$dns1"; do
+		echo "Invalid DNS server."
+		read -rp "Enter primary DNS server: " dns1
+	done
+	read -rp "Enter secondary DNS server (Enter to skip): " dns2
+	until [ -z "$dns2" ] || check_ip "$dns2"; do
+		echo "Invalid DNS server."
+		read -rp "Enter secondary DNS server (Enter to skip): " dns2
+	done
+}
+
+set_client_name() {
+	# Allow a limited set of characters to avoid conflicts
+	client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<< "$unsanitized_client")
+}
+
+enter_client_name() {
+	if [ "$auto" = 0 ]; then
+		echo
+		echo "Enter a name for the first client:"
+		read -rp "Name [client]: " unsanitized_client
+		set_client_name
+		[[ -z "$client" ]] && client=client
+	else
+		client=client
+	fi
+}
+
+check_firewall() {
+	# Install a firewall if firewalld or iptables are not already available
+	if ! systemctl is-active --quiet firewalld.service && ! hash iptables 2>/dev/null; then
+		if [[ "$os" == "centos" || "$os" == "fedora" ]]; then
+			firewall="firewalld"
+			# We don't want to silently enable firewalld, so we give a subtle warning
+			# If the user continues, firewalld will be installed and enabled during setup
+			echo
+			echo "Note: firewalld, which is required to manage routing tables, will also be installed."
+		elif [[ "$os" == "debian" || "$os" == "ubuntu" ]]; then
+			firewall="iptables"
+		fi
+	fi
+}
+
+abort_and_exit() {
+	echo "Abort. No changes were made." >&2
+	exit 1
+}
+
+confirm_setup() {
+	if [ "$auto" = 0 ]; then
+		printf "Do you want to continue? [Y/n] "
+		read -r response
+		case $response in
+			[yY][eE][sS]|[yY]|'')
+				:
+				;;
+			*)
+				abort_and_exit
+				;;
+		esac
+	fi
 }
 
 new_client_dns() {
@@ -125,16 +361,7 @@ new_client_dns() {
 			dns="94.140.14.14, 94.140.15.15"
 		;;
 		7)
-			read -rp "Enter primary DNS server: " dns1
-			until check_ip "$dns1"; do
-				echo "Invalid DNS server."
-				read -rp "Enter primary DNS server: " dns1
-			done
-			read -rp "Enter secondary DNS server (Enter to skip): " dns2
-			until [ -z "$dns2" ] || check_ip "$dns2"; do
-				echo "Invalid DNS server."
-				read -rp "Enter secondary DNS server (Enter to skip): " dns2
-			done
+			enter_custom_dns
 			if [ -n "$dns2" ]; then
 				dns="$dns1, $dns2"
 			else
@@ -142,6 +369,18 @@ new_client_dns() {
 			fi
 		;;
 	esac
+}
+
+get_export_dir() {
+	export_to_home_dir=0
+	export_dir=~/
+	if [ -n "$SUDO_USER" ] && getent group "$SUDO_USER" >/dev/null 2>&1; then
+		user_home_dir=$(getent passwd "$SUDO_USER" 2>/dev/null | cut -d: -f6)
+		if [ -d "$user_home_dir" ] && [ "$user_home_dir" != "/" ]; then
+			export_dir="$user_home_dir/"
+			export_to_home_dir=1
+		fi
+	fi
 }
 
 new_client_setup() {
@@ -185,6 +424,36 @@ EOF
 		chown "$SUDO_USER:$SUDO_USER" "$export_dir$client".conf
 	fi
 	chmod 600 "$export_dir$client".conf
+}
+
+update_sysctl() {
+	mkdir -p /etc/sysctl.d
+	conf_fwd="/etc/sysctl.d/99-wireguard-forward.conf"
+	conf_opt="/etc/sysctl.d/99-wireguard-optimize.conf"
+	# Enable net.ipv4.ip_forward for the system
+	echo 'net.ipv4.ip_forward=1' > "$conf_fwd"
+	if [[ -n "$ip6" ]]; then
+		# Enable net.ipv6.conf.all.forwarding for the system
+		echo "net.ipv6.conf.all.forwarding=1" >> "$conf_fwd"
+	fi
+	# Optimize sysctl settings such as TCP buffer sizes
+	base_url="https://github.com/hwdsl2/vpn-extras/releases/download/v1.0.0"
+	conf_url="$base_url/sysctl-wg-$os"
+	[ "$auto" != 0 ] && conf_url="${conf_url}-auto"
+	wget -t 3 -T 30 -q -O "$conf_opt" "$conf_url" 2>/dev/null \
+		|| curl -m 30 -fsL "$conf_url" -o "$conf_opt" 2>/dev/null \
+		|| { /bin/rm -f "$conf_opt"; touch "$conf_opt"; }
+	# Enable TCP BBR congestion control if kernel version >= 4.20
+	if modprobe -q tcp_bbr \
+		&& printf '%s\n%s' "4.20" "$(uname -r)" | sort -C -V; then
+cat >> "$conf_opt" <<'EOF'
+net.core.default_qdisc = fq
+net.ipv4.tcp_congestion_control = bbr
+EOF
+	fi
+	# Apply sysctl settings
+	sysctl -e -q -p "$conf_fwd"
+	sysctl -e -q -p "$conf_opt"
 }
 
 show_header() {
@@ -240,38 +509,8 @@ if [[ $(uname -r | cut -d "." -f 1) -eq 2 ]]; then
 	exiterr "The system is running an old kernel, which is incompatible with this installer."
 fi
 
-# Detect OS
-if grep -qs "ubuntu" /etc/os-release; then
-	os="ubuntu"
-	os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.')
-elif [[ -e /etc/debian_version ]]; then
-	os="debian"
-	os_version=$(grep -oE '[0-9]+' /etc/debian_version | head -1)
-elif [[ -e /etc/almalinux-release || -e /etc/rocky-release || -e /etc/centos-release ]]; then
-	os="centos"
-	os_version=$(grep -shoE '[0-9]+' /etc/almalinux-release /etc/rocky-release /etc/centos-release | head -1)
-elif [[ -e /etc/fedora-release ]]; then
-	os="fedora"
-	os_version=$(grep -oE '[0-9]+' /etc/fedora-release | head -1)
-else
-	exiterr "This installer seems to be running on an unsupported distribution.
-Supported distros are Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS and Fedora."
-fi
-
-if [[ "$os" == "ubuntu" && "$os_version" -lt 1804 ]]; then
-	exiterr "Ubuntu 18.04 or higher is required to use this installer.
-This version of Ubuntu is too old and unsupported."
-fi
-
-if [[ "$os" == "debian" && "$os_version" -lt 10 ]]; then
-	exiterr "Debian 10 or higher is required to use this installer.
-This version of Debian is too old and unsupported."
-fi
-
-if [[ "$os" == "centos" && "$os_version" -lt 7 ]]; then
-	exiterr "CentOS 7 or higher is required to use this installer.
-This version of CentOS is too old and unsupported."
-fi
+check_os
+check_os_ver
 
 if systemd-detect-virt -cq 2>/dev/null; then
 	exiterr "This system is running inside a container, which is not supported by this installer."
@@ -279,12 +518,7 @@ fi
 
 auto=0
 if [[ ! -e /etc/wireguard/wg0.conf ]]; then
-	if [ "$os" = "centos" ]; then
-		if grep -qs "hwdsl2 VPN script" /etc/sysconfig/nftables.conf \
-			|| systemctl is-active --quiet nftables 2>/dev/null; then
-			exiterr "This system has nftables enabled, which is not supported by this installer."
-		fi
-	fi
+	check_nftables
 	while [ "$#" -gt 0 ]; do
 		case $1 in
 			--auto)
@@ -299,194 +533,22 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 				;;
 		esac
 	done
-	# Detect some Debian minimal setups where neither wget nor curl are installed
-	if ! hash wget 2>/dev/null && ! hash curl 2>/dev/null; then
-		if [ "$auto" = 0 ]; then
-			echo "Wget is required to use this installer."
-			read -n1 -r -p "Press any key to install Wget and continue..."
-		fi
-		export DEBIAN_FRONTEND=noninteractive
-		(
-			set -x
-			apt-get -yqq update || apt-get -yqq update
-			apt-get -yqq install wget >/dev/null
-		) || exiterr2
-	fi
-	if ! hash ip 2>/dev/null; then
-		if [ "$auto" = 0 ]; then
-			echo "iproute is required to use this installer."
-			read -n1 -r -p "Press any key to install iproute and continue..."
-		fi
-		if [ "$os" = "debian" ] || [ "$os" = "ubuntu" ]; then
-			export DEBIAN_FRONTEND=noninteractive
-			(
-				set -x
-				apt-get -yqq update || apt-get -yqq update
-				apt-get -yqq install iproute2 >/dev/null
-			) || exiterr2
-		else
-			(
-				set -x
-				yum -y -q install iproute >/dev/null
-			) || exiterr3
-		fi
-	fi
-	if [ "$auto" = 0 ]; then
-		echo
-		echo 'Welcome to this WireGuard server installer!'
-		echo 'GitHub: https://github.com/hwdsl2/wireguard-install'
-		echo
-		echo 'I need to ask you a few questions before starting setup.'
-		echo 'You can use the default options and just press enter if you are OK with them.'
-	else
-		show_header
-		echo
-		echo 'Starting WireGuard setup using default options.'
-	fi
-	# If system has a single IPv4, it is selected automatically.
-	if [[ $(ip -4 addr | grep inet | grep -vEc '127(\.[0-9]{1,3}){3}') -eq 1 ]]; then
-		ip=$(ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}')
-	else
-		# Use the IP address on the default route
-		ip=$(ip -4 route get 1 | sed 's/ uid .*//' | awk '{print $NF;exit}' 2>/dev/null)
-		if ! check_ip "$ip"; then
-			find_public_ip
-			ip_match=0
-			if [ -n "$get_public_ip" ]; then
-				ip_list=$(ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}')
-				while IFS= read -r line; do
-					if [ "$line" = "$get_public_ip" ]; then
-						ip_match=1
-						ip="$line"
-					fi
-				done <<< "$ip_list"
-			fi
-			if [ "$ip_match" = 0 ]; then
-				if [ "$auto" = 0 ]; then
-					echo
-					echo "Which IPv4 address should be used?"
-					number_of_ip=$(ip -4 addr | grep inet | grep -vEc '127(\.[0-9]{1,3}){3}')
-					ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}' | nl -s ') '
-					read -rp "IPv4 address [1]: " ip_number
-					until [[ -z "$ip_number" || "$ip_number" =~ ^[0-9]+$ && "$ip_number" -le "$number_of_ip" ]]; do
-						echo "$ip_number: invalid selection."
-						read -rp "IPv4 address [1]: " ip_number
-					done
-					[[ -z "$ip_number" ]] && ip_number=1
-				else
-					ip_number=1
-				fi
-				ip=$(ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}' | sed -n "$ip_number"p)
-			fi
-		fi
-	fi
-	if ! check_ip "$ip"; then
-		echo "Error: Could not detect this server's IP address." >&2
-		echo "Abort. No changes were made." >&2
-		exit 1
-	fi
-	# If $ip is a private IP address, the server must be behind NAT
-	if printf '%s' "$ip" | grep -qE '^(10|127|172\.(1[6-9]|2[0-9]|3[0-1])|192\.168|169\.254)\.'; then
-		find_public_ip
-		if ! check_ip "$get_public_ip"; then
-			if [ "$auto" = 0 ]; then
-				echo
-				echo "This server is behind NAT. What is the public IPv4 address?"
-				read -rp "Public IPv4 address: " public_ip
-				until check_ip "$public_ip"; do
-					echo "Invalid input."
-					read -rp "Public IPv4 address: " public_ip
-				done
-			else
-				echo "Error: Could not detect this server's public IP." >&2
-				echo "Abort. No changes were made." >&2
-				exit 1
-			fi
-		else
-			public_ip="$get_public_ip"
-		fi
-	fi
-	if [ "$auto" != 0 ]; then
-		echo
-		printf '%s' "Server IP: "
-		[ -n "$public_ip" ] && printf '%s\n' "$public_ip" || printf '%s\n' "$ip"
-		echo "Port: UDP/51820"
-		echo "Client name: client"
-		echo "Client DNS: Google Public DNS"
-	fi
-	# If system has a single IPv6, it is selected automatically
-	if [[ $(ip -6 addr | grep -c 'inet6 [23]') -eq 1 ]]; then
-		ip6=$(ip -6 addr | grep 'inet6 [23]' | cut -d '/' -f 1 | grep -oE '([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}')
-	fi
-	# If system has multiple IPv6, ask the user to select one
-	if [[ $(ip -6 addr | grep -c 'inet6 [23]') -gt 1 ]]; then
-		if [ "$auto" = 0 ]; then
-			echo
-			echo "Which IPv6 address should be used?"
-			number_of_ip6=$(ip -6 addr | grep -c 'inet6 [23]')
-			ip -6 addr | grep 'inet6 [23]' | cut -d '/' -f 1 | grep -oE '([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}' | nl -s ') '
-			read -rp "IPv6 address [1]: " ip6_number
-			until [[ -z "$ip6_number" || "$ip6_number" =~ ^[0-9]+$ && "$ip6_number" -le "$number_of_ip6" ]]; do
-				echo "$ip6_number: invalid selection."
-				read -rp "IPv6 address [1]: " ip6_number
-			done
-			[[ -z "$ip6_number" ]] && ip6_number=1
-		else
-			ip6_number=1
-		fi
-		ip6=$(ip -6 addr | grep 'inet6 [23]' | cut -d '/' -f 1 | grep -oE '([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}' | sed -n "$ip6_number"p)
-	fi
-	if [ "$auto" = 0 ]; then
-		echo
-		echo "What port should WireGuard listen to?"
-		read -rp "Port [51820]: " port
-		until [[ -z "$port" || "$port" =~ ^[0-9]+$ && "$port" -le 65535 ]]; do
-			echo "$port: invalid port."
-			read -rp "Port [51820]: " port
-		done
-		[[ -z "$port" ]] && port=51820
-	else
-		port=51820
-	fi
-	if [ "$auto" = 0 ]; then
-		echo
-		echo "Enter a name for the first client:"
-		read -rp "Name [client]: " unsanitized_client
-		# Allow a limited set of characters to avoid conflicts
-		client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<< "$unsanitized_client")
-		[[ -z "$client" ]] && client=client
-	else
-		client=client
-	fi
+	install_wget
+	install_iproute
+	show_start_setup
+	detect_ip
+	check_nat_ip
+	show_config
+	detect_ipv6
+	select_port
+	enter_client_name
 	new_client_dns
 	if [ "$auto" = 0 ]; then
 		echo
 		echo "WireGuard installation is ready to begin."
 	fi
-	# Install a firewall if firewalld or iptables are not already available
-	if ! systemctl is-active --quiet firewalld.service && ! hash iptables 2>/dev/null; then
-		if [[ "$os" == "centos" || "$os" == "fedora" ]]; then
-			firewall="firewalld"
-			# We don't want to silently enable firewalld, so we give a subtle warning
-			# If the user continues, firewalld will be installed and enabled during setup
-			echo
-			echo "Note: firewalld, which is required to manage routing tables, will also be installed."
-		elif [[ "$os" == "debian" || "$os" == "ubuntu" ]]; then
-			firewall="iptables"
-		fi
-	fi
-	if [ "$auto" = 0 ]; then
-		printf "Do you want to continue? [Y/n] "
-		read -r response
-		case $response in
-			[yY][eE][sS]|[yY]|'')
-				:
-				;;
-			*)
-				abort_and_exit
-				;;
-		esac
-	fi
+	check_firewall
+	confirm_setup
 	echo
 	echo "Installing WireGuard, please wait..."
 	if [[ "$os" == "ubuntu" ]]; then
@@ -681,13 +743,12 @@ else
 			echo "Provide a name for the client:"
 			read -rp "Name: " unsanitized_client
 			[ -z "$unsanitized_client" ] && abort_and_exit
-			# Allow a limited set of characters to avoid conflicts
-			client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<< "$unsanitized_client")
+			set_client_name
 			while [[ -z "$client" ]] || grep -q "^# BEGIN_PEER $client$" /etc/wireguard/wg0.conf; do
 				echo "$client: invalid name."
 				read -rp "Name: " unsanitized_client
 				[ -z "$unsanitized_client" ] && abort_and_exit
-				client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<< "$unsanitized_client")
+				set_client_name
 			done
 			new_client_dns
 			new_client_setup
