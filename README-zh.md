@@ -72,6 +72,34 @@ https://gitlab.com/hwdsl2/wireguard-install/-/raw/master/wireguard-install.sh
 
 如果无法下载，打开 [wireguard-install.sh](wireguard-install.sh)，然后点击右边的 `Raw` 按钮。按快捷键 `Ctrl/Cmd+A` 全选，`Ctrl/Cmd+C` 复制，然后粘贴到你喜欢的编辑器。
 </details>
+<details>
+<summary>
+高级：使用自定义选项自动安装。
+</summary>
+
+高级用户可以使用自定义选项自动安装 WireGuard，方法是提供一个 Bash "here document" 作为安装脚本的输入。此方法还可用于在安装后提供输入以管理用户。
+
+首先，使用自定义选项以交互方式安装 WireGuard，并写下你对脚本的所有输入值。
+
+```bash
+sudo bash wireguard.sh
+```
+
+如需删除 WireGuard，请再次运行脚本并选择适当的选项。
+
+然后使用你的输入值创建自定义安装命令。例如：
+
+```bash
+sudo bash wireguard.sh <<ANSWERS
+51820
+client
+2
+y
+ANSWERS
+```
+
+**注：** 安装选项可能会在脚本的未来版本中发生变化。
+</details>
 
 \* 一个云服务器，虚拟专用服务器 (VPS) 或者专用服务器。
 

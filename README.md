@@ -72,6 +72,34 @@ https://gitlab.com/hwdsl2/wireguard-install/-/raw/master/wireguard-install.sh
 
 If you are unable to download, open [wireguard-install.sh](wireguard-install.sh), then click the `Raw` button on the right. Press `Ctrl/Cmd+A` to select all, `Ctrl/Cmd+C` to copy, then paste into your favorite editor.
 </details>
+<details>
+<summary>
+Advanced: Auto install using custom options.
+</summary>
+
+Advanced users can auto install WireGuard using custom options, by providing a Bash "here document" as input to the setup script. This method can also be used to provide input to manage users after install.
+
+First, install WireGuard interactively using custom options, and write down all your inputs to the script.
+
+```bash
+sudo bash wireguard.sh
+```
+
+If you need to remove WireGuard, run the script again and select the appropriate option.
+
+Next, create the custom install command using your inputs. Example:
+
+```bash
+sudo bash wireguard.sh <<ANSWERS
+51820
+client
+2
+y
+ANSWERS
+```
+
+**Note:** The install options may change in future versions of the script.
+</details>
 
 \* A cloud server, virtual private server (VPS) or dedicated server.
 
