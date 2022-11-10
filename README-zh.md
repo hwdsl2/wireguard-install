@@ -111,7 +111,7 @@ ANSWERS
 
 **[配置 WireGuard VPN 客户端](docs/clients-zh.md)**
 
-**[下载 VPN 文档的 PDF 版本（支持者）](https://ko-fi.com/post/Support-this-project-and-get-access-to-supporter-o-X8X5FVFZC)**
+**[下载电子书：搭建自己的 VPN 服务器（支持者）](https://ko-fi.com/post/Support-this-project-and-get-access-to-supporter-o-X8X5FVFZC)**
 
 开始使用自己的专属 VPN! :sparkles::tada::rocket::sparkles:
 
