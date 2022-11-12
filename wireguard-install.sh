@@ -14,6 +14,7 @@
 exiterr()  { echo "Error: $1" >&2; exit 1; }
 exiterr2() { exiterr "'apt-get install' failed."; }
 exiterr3() { exiterr "'yum install' failed."; }
+exiterr4() { exiterr "'zypper install' failed."; }
 
 check_ip() {
 	IP_REGEX='^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$'
@@ -33,9 +34,14 @@ check_os() {
 	elif [[ -e /etc/fedora-release ]]; then
 		os="fedora"
 		os_version=$(grep -oE '[0-9]+' /etc/fedora-release | head -1)
+	elif [[ -e /etc/SUSE-brand ]]; then
+		os=$(cat /etc/SUSE-brand | head -1)
+		os_version=$(cat /etc/SUSE-brand | tail -1 | grep -oE '[0-9\\.]+')
+		os_version_major=($os_version)[1]
+		os_version_minor=($os_version)[2]
 	else
 		exiterr "This installer seems to be running on an unsupported distribution.
-Supported distros are Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS and Fedora."
+Supported distros are Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS, Fedora and openSUSE."
 	fi
 }
 
@@ -94,6 +100,11 @@ install_iproute() {
 				apt-get -yqq update || apt-get -yqq update
 				apt-get -yqq install iproute2 >/dev/null
 			) || exiterr2
+		elif [ "$os" = "openSUSE" ]; then
+			(
+				set -x
+				zypper install iproute2 >/dev/null
+			) || exiterr4
 		else
 			(
 				set -x
@@ -283,12 +294,16 @@ check_firewall() {
 	if ! systemctl is-active --quiet firewalld.service && ! hash iptables 2>/dev/null; then
 		if [[ "$os" == "centos" || "$os" == "fedora" ]]; then
 			firewall="firewalld"
+		elif [[ "$os" == "openSUSE" ]]; then
+			firewall="firewalld"
+		elif [[ "$os" == "debian" || "$os" == "ubuntu" ]]; then
+			firewall="iptables"	
+		fi
+		if [[ "$firewall" == "firewalld"  ]]; then
 			# We don't want to silently enable firewalld, so we give a subtle warning
 			# If the user continues, firewalld will be installed and enabled during setup
 			echo
 			echo "Note: firewalld, which is required to manage routing tables, will also be installed."
-		elif [[ "$os" == "debian" || "$os" == "ubuntu" ]]; then
-			firewall="iptables"
 		fi
 	fi
 }
@@ -617,6 +632,12 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 			dnf install -y wireguard-tools qrencode $firewall >/dev/null
 		) || exiterr "'dnf install' failed."
 		mkdir -p /etc/wireguard/
+	elif [[ "$os" == "openSUSE" ]]; then
+		(
+			set -x
+			zypper install -y wireguard-tools qrencode $firewall >/dev/null
+		) || exiterr4
+		mkdir -p /etc/wireguard/
 	fi
 	# If firewalld was just installed, enable it
 	if [[ "$firewall" == "firewalld" ]]; then
@@ -896,6 +917,12 @@ else
 					(
 						set -x
 						dnf remove -y wireguard-tools >/dev/null
+						rm -rf /etc/wireguard/
+					)
+				elif [[ "$os" == "openSUSE" ]]; then
+					(
+						set -x
+						zypper remove -y wireguard-tools >/dev/null
 						rm -rf /etc/wireguard/
 					)
 				fi
