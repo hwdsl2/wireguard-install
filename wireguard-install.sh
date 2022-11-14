@@ -37,8 +37,8 @@ check_os() {
 	elif [[ -e /etc/SUSE-brand ]]; then
 		os=$(cat /etc/SUSE-brand | head -1)
 		os_version=$(cat /etc/SUSE-brand | tail -1 | grep -oE '[0-9\\.]+')
-		os_version_major=($os_version)[1]
-		os_version_minor=($os_version)[2]
+		os_version_major=$(cat /etc/SUSE-brand | tail -1 | grep -oE '[0-9]+' | head -1)
+		os_version_minor=$(cat /etc/SUSE-brand | tail -1 | grep -oE '[0-9]+' | tail -1)
 	else
 		exiterr "This installer seems to be running on an unsupported distribution.
 Supported distros are Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS, Fedora and openSUSE."
