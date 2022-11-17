@@ -621,7 +621,8 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 		(
 			set -x
 			yum -y -q install epel-release elrepo-release >/dev/null
-			yum -y -q install kmod-wireguard wireguard-tools qrencode $firewall >/dev/null 2>&1
+			yum -y -q --nobest install kmod-wireguard >/dev/null 2>&1
+			yum -y -q install wireguard-tools qrencode $firewall >/dev/null 2>&1
 		) || exiterr3
 		mkdir -p /etc/wireguard/
 	elif [[ "$os" == "centos" && "$os_version" -eq 7 ]]; then
