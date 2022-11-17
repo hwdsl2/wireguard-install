@@ -456,6 +456,27 @@ EOF
 	sysctl -e -q -p "$conf_opt"
 }
 
+update_rclocal() {
+	ipt_cmd="systemctl restart wg-iptables.service"
+	if ! grep -qs "$ipt_cmd" /etc/rc.local; then
+		if [ ! -f /etc/rc.local ]; then
+			echo '#!/bin/sh' > /etc/rc.local
+		else
+			if [ "$os" = "ubuntu" ] || [ "$os" = "debian" ]; then
+				sed --follow-symlinks -i '/^exit 0/d' /etc/rc.local
+			fi
+		fi
+cat >> /etc/rc.local <<EOF
+
+$ipt_cmd
+EOF
+		if [ "$os" = "ubuntu" ] || [ "$os" = "debian" ]; then
+			echo "exit 0" >> /etc/rc.local
+		fi
+		chmod +x /etc/rc.local
+	fi
+}
+
 show_header() {
 cat <<'EOF'
 
@@ -692,6 +713,7 @@ WantedBy=multi-user.target" >> /etc/systemd/system/wg-iptables.service
 			systemctl enable --now wg-iptables.service >/dev/null 2>&1
 		)
 	fi
+	update_rclocal
 	# Generates the custom client.conf
 	new_client_setup
 	# Enable and start the wg-quick service
@@ -861,6 +883,10 @@ else
 					&& [ ! -f /usr/local/sbin/ipsec ]; then
 					echo 0 > /proc/sys/net/ipv4/ip_forward
 					echo 0 > /proc/sys/net/ipv6/conf/all/forwarding
+				fi
+				ipt_cmd="systemctl restart wg-iptables.service"
+				if grep -qs "$ipt_cmd" /etc/rc.local; then
+					sed --follow-symlinks -i "/^$ipt_cmd/d" /etc/rc.local
 				fi
 				if [[ "$os" == "ubuntu" ]]; then
 					(
