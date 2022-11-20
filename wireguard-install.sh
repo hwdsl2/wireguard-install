@@ -445,7 +445,8 @@ update_sysctl() {
 		|| { /bin/rm -f "$conf_opt"; touch "$conf_opt"; }
 	# Enable TCP BBR congestion control if kernel version >= 4.20
 	if modprobe -q tcp_bbr \
-		&& printf '%s\n%s' "4.20" "$(uname -r)" | sort -C -V; then
+		&& printf '%s\n%s' "4.20" "$(uname -r)" | sort -C -V \
+		&& [ -f /proc/sys/net/ipv4/tcp_congestion_control ]; then
 cat >> "$conf_opt" <<'EOF'
 net.core.default_qdisc = fq
 net.ipv4.tcp_congestion_control = bbr
