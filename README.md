@@ -111,11 +111,11 @@ Get your computer or device to use the VPN. Please refer to:
 
 **[Configure WireGuard VPN Clients](docs/clients.md)**
 
-**[[Supporters] Download eBook: Set Up Your Own VPN Server](https://ko-fi.com/post/Support-this-project-and-get-access-to-supporter-o-O5O7FVF8J)**
+**[:book: eBook: Set Up Your Own IPsec VPN, OpenVPN and WireGuard Server](https://mybook.to/vpn)**
 
 Enjoy your very own VPN! :sparkles::tada::rocket::sparkles:
 
-Like this project? [:heart: Sponsor](https://github.com/sponsors/hwdsl2?metadata_o=w) or [:coffee: Support](https://ko-fi.com/hwdsl2) and access [supporter-only content](https://ko-fi.com/post/Support-this-project-and-get-access-to-supporter-o-O5O7FVF8J).
+Like this project? [:heart: Sponsor](https://github.com/sponsors/hwdsl2?metadata_o=w) or [:coffee: Support](https://ko-fi.com/hwdsl2) and access [extra content](https://ko-fi.com/post/Support-this-project-and-get-access-to-supporter-o-O5O7FVF8J).
 
 ## Credits
 
