@@ -111,7 +111,7 @@ ANSWERS
 
 **[配置 WireGuard VPN 客户端](docs/clients-zh.md)**
 
-**[:book: 电子书：搭建自己的 IPsec VPN, OpenVPN 和 WireGuard 服务器](https://mybook.to/vpnzhs) [[繁體版](https://mybook.to/vpnzh)]**
+**[:book: 电子书：搭建自己的 IPsec VPN, OpenVPN 和 WireGuard 服务器](https://mybook.to/vpnzhs)**
 
 开始使用自己的专属 VPN! :sparkles::tada::rocket::sparkles:
 
