@@ -28,8 +28,7 @@ jobs:
           export DEBIAN_FRONTEND=noninteractive
           sudo apt-get -yqq update
           sudo apt-get -yqq dist-upgrade
-          sudo apt-get -yqq install wget rsyslog
-          sudo service rsyslog start
+          sudo apt-get -yqq install wget
 
           cp -f "$GITHUB_WORKSPACE"/wireguard-install.sh ./wireguard.sh
 

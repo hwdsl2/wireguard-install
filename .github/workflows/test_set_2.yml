@@ -31,12 +31,7 @@ jobs:
           export DEBIAN_FRONTEND=noninteractive
           apt-get -yqq update
           apt-get -yqq dist-upgrade
-          apt-get -yqq install wget rsyslog kmod procps net-tools
-          if grep -qs bookworm /etc/debian_version; then
-            rsyslogd
-          else
-            service rsyslog start
-          fi
+          apt-get -yqq install wget kmod procps net-tools
 
           cp -f "$GITHUB_WORKSPACE"/wireguard-install.sh ./wireguard.sh
 
