@@ -111,7 +111,7 @@ Get your computer or device to use the VPN. Please refer to:
 
 **[Configure WireGuard VPN Clients](docs/clients.md)**
 
-**[:book: eBook: Set Up Your Own IPsec VPN, OpenVPN and WireGuard Server](https://mybook.to/vpn)**
+**[:book: Book: Set Up Your Own IPsec VPN, OpenVPN and WireGuard Server](https://mybook.to/vpn)**
 
 Enjoy your very own VPN! :sparkles::tada::rocket::sparkles:
 
