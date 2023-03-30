@@ -641,6 +641,7 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 		) || exiterr "'dnf install' failed."
 		mkdir -p /etc/wireguard/
 	fi
+	[ ! -d /etc/wireguard ] && exiterr2
 	# If firewalld was just installed, enable it
 	if [[ "$firewall" == "firewalld" ]]; then
 		(
