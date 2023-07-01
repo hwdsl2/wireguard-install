@@ -113,9 +113,9 @@ ANSWERS
 
 **[配置 WireGuard VPN 客户端](docs/clients-zh.md)**
 
-开始使用自己的专属 VPN! :sparkles::tada::rocket::sparkles:
+**阅读 [:book: VPN book](https://books2read.com/vpnzh) 以访问 [额外内容](https://ko-fi.com/post/Support-this-project-and-get-access-to-supporter-o-X8X5FVFZC)。**
 
-喜欢这个项目？[:heart: 赞助](https://github.com/sponsors/hwdsl2?metadata_o=wz) 或 [:coffee: 支持](https://ko-fi.com/hwdsl2) 并访问 [额外内容](https://ko-fi.com/post/Support-this-project-and-get-access-to-supporter-o-X8X5FVFZC)。
+开始使用自己的专属 VPN! :sparkles::tada::rocket::sparkles:
 
 ## 致谢
 
