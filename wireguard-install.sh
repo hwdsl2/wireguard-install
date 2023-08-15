@@ -34,11 +34,9 @@ check_os() {
 	elif [[ -e /etc/fedora-release ]]; then
 		os="fedora"
 		os_version=$(grep -oE '[0-9]+' /etc/fedora-release | head -1)
-	elif [[ -e /etc/SUSE-brand ]]; then
-		os=$(cat /etc/SUSE-brand | head -1)
-		os_version=$(cat /etc/SUSE-brand | tail -1 | grep -oE '[0-9\\.]+')
-		os_version_major=$(cat /etc/SUSE-brand | tail -1 | grep -oE '[0-9]+' | head -1)
-		os_version_minor=$(cat /etc/SUSE-brand | tail -1 | grep -oE '[0-9]+' | tail -1)
+	elif [[ -e /etc/SUSE-brand && "$(head -1 /etc/SUSE-brand)" == "openSUSE" ]]; then
+		os="openSUSE"
+		os_version=$(tail -1 /etc/SUSE-brand | grep -oE '[0-9\\.]+')
 	else
 		exiterr "This installer seems to be running on an unsupported distribution.
 Supported distros are Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS, Fedora and openSUSE."
@@ -297,9 +295,9 @@ check_firewall() {
 		elif [[ "$os" == "openSUSE" ]]; then
 			firewall="firewalld"
 		elif [[ "$os" == "debian" || "$os" == "ubuntu" ]]; then
-			firewall="iptables"	
+			firewall="iptables"
 		fi
-		if [[ "$firewall" == "firewalld"  ]]; then
+		if [[ "$firewall" == "firewalld" ]]; then
 			# We don't want to silently enable firewalld, so we give a subtle warning
 			# If the user continues, firewalld will be installed and enabled during setup
 			echo
@@ -737,7 +735,9 @@ WantedBy=multi-user.target" >> /etc/systemd/system/wg-iptables.service
 			systemctl enable --now wg-iptables.service >/dev/null 2>&1
 		)
 	fi
-	update_rclocal
+	if [ "$os" != "openSUSE" ]; then
+		update_rclocal
+	fi
 	# Generates the custom client.conf
 	new_client_setup
 	# Enable and start the wg-quick service
