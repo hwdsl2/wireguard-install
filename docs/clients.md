@@ -8,7 +8,4 @@ To add a VPN connection, open the WireGuard App on your mobile device, tap the "
 
 To manage WireGuard VPN clients, run the install script again: `sudo bash wireguard.sh`.
 
-Step-by-step instructions to configure and manage WireGuard VPN clients can be found in the following books:
-
-* [Build Your Own VPN Server: A Step by Step Guide](https://books2read.com/vpnguide)
-* [Set Up Your Own IPsec VPN, OpenVPN and WireGuard Server](https://books2read.com/vpn)
+Read [:book: VPN book](https://ko-fi.com/post/Support-this-project-and-get-access-to-supporter-o-O5O7FVF8J) to learn step-by-step instructions to configure and manage WireGuard VPN clients.

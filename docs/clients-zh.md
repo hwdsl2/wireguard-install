@@ -8,7 +8,4 @@
 
 要管理 WireGuard VPN 客户端，请再次运行安装脚本：`sudo bash wireguard.sh`。
 
-配置和管理 WireGuard VPN 客户端的分步说明请参见以下电子书：
-
-* [搭建自己的 VPN 服务器分步指南](https://books2read.com/vpnguidezh)
-* [搭建自己的 IPsec VPN, OpenVPN 和 WireGuard 服务器](https://books2read.com/vpnzh)
+阅读 [:book: VPN book](https://ko-fi.com/post/Support-this-project-and-get-access-to-supporter-o-X8X5FVFZC) 以了解配置和管理 WireGuard VPN 客户端的分步说明。
