@@ -52,6 +52,8 @@ sudo bash wireguard.sh --auto
 sudo bash wireguard.sh
 ```
 
+你可以自定义以下选项：VPN 服务器的域名，端口，VPN 客户端的 DNS 服务器以及第一个客户端的名称。
+
 <details>
 <summary>
 如果无法下载，请点这里。
@@ -128,8 +130,9 @@ ANSWERS
 
 - 改进了与 Setup IPsec VPN 的兼容性
 - 改进了脚本的可靠性，用户输入和输出
-- 增加了对 openSUSE Linux 的支持
 - 支持使用默认选项自动安装
+- 支持使用域名作为服务器地址
+- 增加了对 openSUSE Linux 的支持
 - 支持列出现有的 VPN 客户端
 - 支持为 VPN 客户端自定义 DNS 服务器
 - 优化 `sysctl` 设置以提高 VPN 性能
