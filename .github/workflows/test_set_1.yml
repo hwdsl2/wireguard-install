@@ -94,11 +94,36 @@ jobs:
 
 
 
+
           ANSWERS
 
           netstat -anpu | grep ':51820'
           systemctl status wg-quick@wg0
           ls -ld ~/client.conf
+
+          bash wireguard.sh <<ANSWERS
+          4
+          y
+          ANSWERS
+
+          netstat -anpu | grep ':51820' && exit 1
+          rm -f ~/client*.conf
+
+          bash wireguard.sh <<ANSWERS
+          y
+          invalidfqdn
+          vpn.example.com
+
+
+
+
+          ANSWERS
+
+          netstat -anpu | grep ':51820'
+          systemctl status wg-quick@wg0
+          ls -ld ~/client.conf
+          grep -q 'ENDPOINT vpn.example.com' /etc/wireguard/wg0.conf
+          grep -q 'Endpoint = vpn.example.com:51820' ~/client.conf
 
           bash wireguard.sh <<ANSWERS
           4
