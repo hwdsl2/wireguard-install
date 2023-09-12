@@ -250,27 +250,9 @@ show_config() {
 }
 
 detect_ipv6() {
-	# If system has a single IPv6, it is selected automatically
-	if [[ $(ip -6 addr | grep -c 'inet6 [23]') -eq 1 ]]; then
-		ip6=$(ip -6 addr | grep 'inet6 [23]' | cut -d '/' -f 1 | grep -oE '([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}')
-	fi
-	# If system has multiple IPv6, ask the user to select one
-	if [[ $(ip -6 addr | grep -c 'inet6 [23]') -gt 1 ]]; then
-		if [ "$auto" = 0 ]; then
-			echo
-			echo "Which IPv6 address should be used?"
-			num_of_ip6=$(ip -6 addr | grep -c 'inet6 [23]')
-			ip -6 addr | grep 'inet6 [23]' | cut -d '/' -f 1 | grep -oE '([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}' | nl -s ') '
-			read -rp "IPv6 address [1]: " ip6_num
-			until [[ -z "$ip6_num" || "$ip6_num" =~ ^[0-9]+$ && "$ip6_num" -le "$num_of_ip6" ]]; do
-				echo "$ip6_num: invalid selection."
-				read -rp "IPv6 address [1]: " ip6_num
-			done
-			[[ -z "$ip6_num" ]] && ip6_num=1
-		else
-			ip6_num=1
-		fi
-		ip6=$(ip -6 addr | grep 'inet6 [23]' | cut -d '/' -f 1 | grep -oE '([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}' | sed -n "$ip6_num"p)
+	ip6=""
+	if [[ $(ip -6 addr | grep -c 'inet6 [23]') -ne 0 ]]; then
+		ip6=$(ip -6 addr | grep 'inet6 [23]' | cut -d '/' -f 1 | grep -oE '([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}' | sed -n 1p)
 	fi
 }
 
