@@ -44,7 +44,7 @@ sudo bash wireguard.sh --auto
 <p align="center"><img src="docs/images/demo1.svg"></p>
 </details>
 
-对于有外部防火墙的服务器（比如 [EC2](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-security-groups.html)/[GCE](https://cloud.google.com/vpc/docs/firewalls)），请为 VPN 打开 UDP 端口 51820。
+对于有外部防火墙的服务器（比如 [EC2](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-security-groups.html)/[GCE](https://cloud.google.com/firewall/docs/firewalls)），请为 VPN 打开 UDP 端口 51820。
 
 **选项 2:** 使用自定义选项进行交互式安装。
 
@@ -95,6 +95,7 @@ sudo bash wireguard.sh
 
 ```bash
 sudo bash wireguard.sh <<ANSWERS
+n
 51820
 client
 2
