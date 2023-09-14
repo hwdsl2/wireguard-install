@@ -4,7 +4,7 @@
 
 [![Build Status](https://github.com/hwdsl2/wireguard-install/actions/workflows/main.yml/badge.svg)](https://github.com/hwdsl2/wireguard-install/actions/workflows/main.yml) &nbsp;[![License: MIT](docs/images/license.svg)](https://opensource.org/licenses/MIT)
 
-使用 Linux 脚本一键快速搭建自己的 WireGuard VPN 服务器。支持 Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS, Fedora 和 openSUSE。
+使用 Linux 脚本一键快速搭建自己的 WireGuard VPN 服务器。支持 Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS, Fedora, openSUSE 和 Raspberry Pi OS。
 
 该脚本可让你在几分钟内建立自己的 VPN 服务器，即使你以前没有使用过 WireGuard。[WireGuard](https://www.wireguard.com) 是一种快速且现代的 VPN，其设计目标是易于使用和高性能。
 
@@ -52,7 +52,9 @@ sudo bash wireguard.sh --auto
 sudo bash wireguard.sh
 ```
 
-你可以自定义以下选项：VPN 服务器的域名，端口，VPN 客户端的 DNS 服务器以及第一个客户端的名称。
+你可以自定义以下选项：VPN 服务器的域名，UDP 端口，VPN 客户端的 DNS 服务器以及第一个客户端的名称。
+
+对于有外部防火墙的服务器，请为 VPN 打开所选的 UDP 端口。
 
 <details>
 <summary>

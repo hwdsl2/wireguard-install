@@ -4,7 +4,7 @@
 
 [![Build Status](https://github.com/hwdsl2/wireguard-install/actions/workflows/main.yml/badge.svg)](https://github.com/hwdsl2/wireguard-install/actions/workflows/main.yml) &nbsp;[![License: MIT](docs/images/license.svg)](https://opensource.org/licenses/MIT)
 
-WireGuard VPN server installer for Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS, Fedora and openSUSE.
+WireGuard VPN server installer for Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS, Fedora, openSUSE and Raspberry Pi OS.
 
 This script will let you set up your own VPN server in just a few minutes, even if you haven't used WireGuard before. [WireGuard](https://www.wireguard.com) is a fast and modern VPN designed with the goals of ease of use and high performance.
 
@@ -52,7 +52,9 @@ For servers with an external firewall (e.g. [EC2](https://docs.aws.amazon.com/AW
 sudo bash wireguard.sh
 ```
 
-You can customize the following options: VPN server's DNS name, port, DNS server for VPN clients and name of the first client.
+You can customize the following options: VPN server's DNS name, UDP port, DNS server for VPN clients and name of the first client.
+
+For servers with an external firewall, open your selected UDP port for the VPN.
 
 <details>
 <summary>
