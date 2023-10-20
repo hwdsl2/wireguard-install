@@ -153,6 +153,8 @@ enter_server_address() {
 			read -rp "Enter the DNS name of this VPN server: " server_addr
 		done
 		ip="$server_addr"
+		echo
+		echo "Note: Make sure this DNS name resolves to the IPv4 address of this server."
 	else
 		detect_ip
 		check_nat_ip
@@ -259,7 +261,7 @@ detect_ipv6() {
 select_port() {
 	if [ "$auto" = 0 ]; then
 		echo
-		echo "What port should WireGuard listen to?"
+		echo "Which port should WireGuard listen to?"
 		read -rp "Port [51820]: " port
 		until [[ -z "$port" || "$port" =~ ^[0-9]+$ && "$port" -le 65535 ]]; do
 			echo "$port: invalid port."
