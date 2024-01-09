@@ -5,7 +5,7 @@
 # Based on the work of Nyr and contributors at:
 # https://github.com/Nyr/wireguard-install
 #
-# Copyright (c) 2022-2023 Lin Song <linsongui@gmail.com>
+# Copyright (c) 2022-2024 Lin Song <linsongui@gmail.com>
 # Copyright (c) 2020-2023 Nyr
 #
 # Released under the MIT License, see the accompanying file LICENSE.txt
@@ -519,7 +519,7 @@ EOF
 show_header2() {
 cat <<'EOF'
 
-Copyright (c) 2022-2023 Lin Song
+Copyright (c) 2022-2024 Lin Song
 Copyright (c) 2020-2023 Nyr
 EOF
 }
@@ -798,10 +798,11 @@ else
 	echo "   1) Add a new client"
 	echo "   2) List existing clients"
 	echo "   3) Remove an existing client"
-	echo "   4) Remove WireGuard"
-	echo "   5) Exit"
+	echo "   4) Show QR code for a client"
+	echo "   5) Remove WireGuard"
+	echo "   6) Exit"
 	read -rp "Option: " option
-	until [[ "$option" =~ ^[1-5]$ ]]; do
+	until [[ "$option" =~ ^[1-6]$ ]]; do
 		echo "$option: invalid selection."
 		read -rp "Option: " option
 	done
@@ -845,6 +846,7 @@ else
 			elif [ -n "$num_of_clients" ]; then
 				printf '\n%s\n' "Total: $num_of_clients clients"
 			fi
+			exit
 		;;
 		3)
 			num_of_clients=$(grep -c '^# BEGIN_PEER' /etc/wireguard/wg0.conf)
@@ -893,6 +895,38 @@ else
 			exit
 		;;
 		4)
+			num_of_clients=$(grep -c '^# BEGIN_PEER' /etc/wireguard/wg0.conf)
+			if [[ "$num_of_clients" = 0 ]]; then
+				echo
+				echo "There are no existing clients!"
+				exit
+			fi
+			echo
+			echo "Select the client to show QR code for:"
+			grep '^# BEGIN_PEER' /etc/wireguard/wg0.conf | cut -d ' ' -f 3 | nl -s ') '
+			read -rp "Client: " client_num
+			[ -z "$client_num" ] && abort_and_exit
+			until [[ "$client_num" =~ ^[0-9]+$ && "$client_num" -le "$num_of_clients" ]]; do
+				echo "$client_num: invalid selection."
+				read -rp "Client: " client_num
+				[ -z "$client_num" ] && abort_and_exit
+			done
+			client=$(grep '^# BEGIN_PEER' /etc/wireguard/wg0.conf | cut -d ' ' -f 3 | sed -n "$client_num"p)
+			echo
+			get_export_dir
+			wg_file="$export_dir$client.conf"
+			if [ ! -f "$wg_file" ]; then
+				echo "Error: Cannot show QR code. Missing client config file $wg_file" >&2
+				echo "       You may instead re-run this script and add a new client." >&2
+				exit 1
+			fi
+			qrencode -t UTF8 < "$wg_file"
+			echo -e '\xE2\x86\x91 That is a QR code containing the client configuration.'
+			echo
+			echo "Configuration for '$client' is available in: $wg_file"
+			exit
+		;;
+		5)
 			echo
 			read -rp "Confirm WireGuard removal? [y/N]: " remove
 			until [[ "$remove" =~ ^[yYnN]*$ ]]; do
@@ -985,7 +1019,7 @@ else
 			fi
 			exit
 		;;
-		5)
+		6)
 			exit
 		;;
 	esac
