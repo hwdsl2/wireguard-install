@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2022-2023 Lin Song <linsongui@gmail.com>
+# Copyright (C) 2022-2024 Lin Song <linsongui@gmail.com>
 
 name: test_set_3
 
@@ -68,6 +68,11 @@ jobs:
 
           sudo bash wireguard.sh <<ANSWERS
           4
+          1
+          ANSWERS
+
+          sudo bash wireguard.sh <<ANSWERS
+          5
           y
           ANSWERS
 
@@ -87,7 +92,7 @@ jobs:
           ls -ld ~/client.conf
 
           sudo bash wireguard.sh <<ANSWERS
-          4
+          5
           y
           ANSWERS
 
@@ -111,7 +116,7 @@ jobs:
           grep -q 'Endpoint = vpn.example.com:51820' ~/client.conf
 
           sudo bash wireguard.sh <<ANSWERS
-          4
+          5
           y
           ANSWERS
 
