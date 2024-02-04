@@ -17,7 +17,7 @@ jobs:
       image: ${{ matrix.os_version }}
       options: --cap-add=NET_ADMIN
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           persist-credentials: false
       - name: Test
