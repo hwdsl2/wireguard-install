@@ -10,7 +10,7 @@
 
 另见：[OpenVPN](https://github.com/hwdsl2/openvpn-install/blob/master/README-zh.md) 和 [IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/README-zh.md) 服务器一键安装脚本。
 
-**[&raquo; :book: Book: 搭建自己的 VPN 服务器分步指南](https://books2read.com/vpnguidezh)**
+**[&raquo; :book: Book: 搭建自己的 VPN 服务器分步指南](https://books2read.com/vpnguidezh?store=amazon)**
 
 ## 功能特性
 
@@ -137,6 +137,7 @@ ANSWERS
 - 支持使用域名作为服务器地址
 - 增加了对 openSUSE Linux 的支持
 - 支持列出现有的 VPN 客户端
+- 支持显示客户端配置的二维码
 - 支持为 VPN 客户端自定义 DNS 服务器
 - 优化 `sysctl` 设置以提高 VPN 性能
 - 使用 `sudo` 时改进了客户端配置文件的创建

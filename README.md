@@ -137,6 +137,7 @@ List of enhancements over Nyr/wireguard-install.
 - Supports using a DNS name as server address
 - Added support for openSUSE Linux
 - Supports listing existing VPN clients
+- Supports showing QR code for a client
 - Supports custom DNS server(s) for VPN clients
 - Optimizes `sysctl` settings for improved VPN performance
 - Improved creation of client config files when using `sudo`
