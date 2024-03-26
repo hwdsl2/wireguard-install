@@ -414,17 +414,33 @@ get_export_dir() {
 }
 
 new_client_setup() {
-	get_export_dir
-	# Given a list of the assigned internal IPv4 addresses, obtain the lowest still
-	# available octet. Important to start looking at 2, because 1 is our gateway.
-	octet=2
-	while grep AllowedIPs /etc/wireguard/wg0.conf | cut -d "." -f 4 | cut -d "/" -f 1 | grep -q "$octet"; do
-		(( octet++ ))
-	done
-	# Don't break the WireGuard configuration in case the address space is full
-	if [[ "$octet" -eq 255 ]]; then
-		exiterr "253 clients are already configured. The WireGuard internal subnet is full!"
-	fi
+    get_export_dir
+    read -p "Do you want to specify an IP address for the new client? (y/n): " specify_ip
+
+    # Check user's choice
+    if [[ "$specify_ip" =~ ^[Yy]$ ]]; then
+        read -p "Enter the desired IP address for the new client (e.g., 10.7.0.X): " client_ip
+        # Validate the user input IP address
+        if [[ ! $client_ip =~ ^10\.7\.0\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?)$ ]]; then
+            exiterr "Invalid IP address. Please enter an IP address within the range 10.7.0.2 to 10.7.0.255."
+        fi
+        octet=$(echo "$client_ip" | cut -d "." -f 4)
+        # Check if the IP is already in use
+        if grep AllowedIPs /etc/wireguard/wg0.conf | cut -d "." -f 4 | cut -d "/" -f 1 | grep -q "$octet"; then
+            exiterr "The IP address is already in use. Please choose another one."
+        fi
+    else
+        # Automatically select an unused IP address
+        octet=2
+        while grep AllowedIPs /etc/wireguard/wg0.conf | cut -d "." -f 4 | cut -d "/" -f 1 | grep -q "$octet"; do
+            (( octet++ ))
+        done
+        # Don't break the WireGuard configuration in case the address space is full
+        if [[ "$octet" -eq 255 ]]; then
+            exiterr "253 clients are already configured. The WireGuard internal subnet is full!"
+        fi
+    fi
+
 	key=$(wg genkey)
 	psk=$(wg genpsk)
 	# Configure client in the server
