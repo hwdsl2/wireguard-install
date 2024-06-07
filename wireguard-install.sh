@@ -44,13 +44,13 @@ Supported distros are Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS, Fedora and
 }
 
 check_os_ver() {
-	if [[ "$os" == "ubuntu" && "$os_version" -lt 1804 ]]; then
-		exiterr "Ubuntu 18.04 or higher is required to use this installer.
+	if [[ "$os" == "ubuntu" && "$os_version" -lt 2004 ]]; then
+		exiterr "Ubuntu 20.04 or higher is required to use this installer.
 This version of Ubuntu is too old and unsupported."
 	fi
 
-	if [[ "$os" == "debian" && "$os_version" -lt 10 ]]; then
-		exiterr "Debian 10 or higher is required to use this installer.
+	if [[ "$os" == "debian" && "$os_version" -lt 11 ]]; then
+		exiterr "Debian 11 or higher is required to use this installer.
 This version of Debian is too old and unsupported."
 	fi
 
@@ -646,35 +646,11 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 			apt-get -yqq update || apt-get -yqq update
 			apt-get -yqq install wireguard qrencode $firewall >/dev/null
 		) || exiterr2
-	elif [[ "$os" == "debian" && "$os_version" -ge 11 ]]; then
+	elif [[ "$os" == "debian" ]]; then
 		export DEBIAN_FRONTEND=noninteractive
 		(
 			set -x
 			apt-get -yqq update || apt-get -yqq update
-			apt-get -yqq install wireguard qrencode $firewall >/dev/null
-		) || exiterr2
-	elif [[ "$os" == "debian" && "$os_version" -eq 10 ]]; then
-		if ! grep -qs '^deb .* buster-backports main' /etc/apt/sources.list /etc/apt/sources.list.d/*.list; then
-			echo "deb http://deb.debian.org/debian buster-backports main" >> /etc/apt/sources.list
-		fi
-		export DEBIAN_FRONTEND=noninteractive
-		(
-			set -x
-			apt-get -yqq update || apt-get -yqq update
-			# Try to install kernel headers for the running kernel and avoid a reboot. This
-			# can fail, so it's important to run separately from the other apt-get command.
-			apt-get -yqq install linux-headers-"$(uname -r)" >/dev/null
-		)
-		# There are cleaner ways to find out the $architecture, but we require an
-		# specific format for the package name and this approach provides what we need.
-		architecture=$(dpkg --get-selections 'linux-image-*-*' | cut -f 1 | grep -oE '[^-]*$' -m 1)
-		# linux-headers-$architecture points to the latest headers. We install it
-		# because if the system has an outdated kernel, there is no guarantee that old
-		# headers were still downloadable and to provide suitable headers for future
-		# kernel updates.
-		(
-			set -x
-			apt-get -yqq install linux-headers-"$architecture" >/dev/null
 			apt-get -yqq install wireguard qrencode $firewall >/dev/null
 		) || exiterr2
 	elif [[ "$os" == "centos" && "$os_version" -eq 9 ]]; then
@@ -803,17 +779,10 @@ WantedBy=multi-user.target" >> /etc/systemd/system/wg-iptables.service
 	echo -e '\xE2\x86\x91 That is a QR code containing the client configuration.'
 	echo
 	# If the kernel module didn't load, system probably had an outdated kernel
-	# We'll try to help, but will not force a kernel upgrade upon the user
 	if ! modprobe -nq wireguard; then
 		echo "Warning!"
 		echo "Installation was finished, but the WireGuard kernel module could not load."
-		if [[ "$os" == "ubuntu" && "$os_version" -eq 1804 ]]; then
-			echo 'Upgrade the kernel and headers with "apt-get install linux-generic" and restart.'
-		elif [[ "$os" == "debian" && "$os_version" -eq 10 ]]; then
-			echo "Upgrade the kernel with \"apt-get install linux-image-$architecture\" and restart."
-		elif [[ "$os" == "centos" && "$os_version" -le 8 ]]; then
-			echo "Reboot the system to load the most recent kernel."
-		fi
+		echo "Reboot the system to load the most recent kernel."
 	else
 		echo "Finished!"
 	fi
@@ -1005,17 +974,11 @@ else
 						rm -rf /etc/wireguard/
 						apt-get remove --purge -y wireguard wireguard-tools >/dev/null
 					)
-				elif [[ "$os" == "debian" && "$os_version" -ge 11 ]]; then
+				elif [[ "$os" == "debian" ]]; then
 					(
 						set -x
 						rm -rf /etc/wireguard/
 						apt-get remove --purge -y wireguard wireguard-tools >/dev/null
-					)
-				elif [[ "$os" == "debian" && "$os_version" -eq 10 ]]; then
-					(
-						set -x
-						rm -rf /etc/wireguard/
-						apt-get remove --purge -y wireguard wireguard-dkms wireguard-tools >/dev/null
 					)
 				elif [[ "$os" == "centos" && "$os_version" -eq 9 ]]; then
 					(
