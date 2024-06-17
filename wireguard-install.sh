@@ -21,6 +21,26 @@ check_ip() {
 	printf '%s' "$1" | tr -d '\n' | grep -Eq "$IP_REGEX"
 }
 
+check_root() {
+	if [ "$(id -u)" != 0 ]; then
+		exiterr "This installer must be run as root. Try 'sudo bash $0'"
+	fi
+}
+
+check_shell() {
+	# Detect Debian users running the script with "sh" instead of bash
+	if readlink /proc/$$/exe | grep -q "dash"; then
+		exiterr 'This installer needs to be run with "bash", not "sh".'
+	fi
+}
+
+check_kernel() {
+	# Detect OpenVZ 6
+	if [[ $(uname -r | cut -d "." -f 1) -eq 2 ]]; then
+		exiterr "The system is running an old kernel, which is incompatible with this installer."
+	fi
+}
+
 check_os() {
 	if grep -qs "ubuntu" /etc/os-release; then
 		os="ubuntu"
@@ -58,6 +78,29 @@ This version of Debian is too old and unsupported."
 		exiterr "CentOS 7 or higher is required to use this installer.
 This version of CentOS is too old and unsupported."
 	fi
+}
+
+check_container() {
+	if systemd-detect-virt -cq 2>/dev/null; then
+		exiterr "This system is running inside a container, which is not supported by this installer."
+	fi
+}
+
+parse_args() {
+	while [ "$#" -gt 0 ]; do
+		case $1 in
+			--auto)
+				auto=1
+				shift
+				;;
+			-h|--help)
+				show_usage
+				;;
+			*)
+				show_usage "Unknown parameter: $1"
+				;;
+		esac
+	done
 }
 
 check_nftables() {
@@ -343,6 +386,235 @@ confirm_setup() {
 	fi
 }
 
+install_pkgs() {
+	if [[ "$os" == "ubuntu" ]]; then
+		export DEBIAN_FRONTEND=noninteractive
+		(
+			set -x
+			apt-get -yqq update || apt-get -yqq update
+			apt-get -yqq install wireguard qrencode $firewall >/dev/null
+		) || exiterr2
+	elif [[ "$os" == "debian" ]]; then
+		export DEBIAN_FRONTEND=noninteractive
+		(
+			set -x
+			apt-get -yqq update || apt-get -yqq update
+			apt-get -yqq install wireguard qrencode $firewall >/dev/null
+		) || exiterr2
+	elif [[ "$os" == "centos" && "$os_version" -eq 9 ]]; then
+		(
+			set -x
+			yum -y -q install epel-release >/dev/null
+			yum -y -q install wireguard-tools qrencode $firewall >/dev/null 2>&1
+		) || exiterr3
+		mkdir -p /etc/wireguard/
+	elif [[ "$os" == "centos" && "$os_version" -eq 8 ]]; then
+		(
+			set -x
+			yum -y -q install epel-release elrepo-release >/dev/null
+			yum -y -q --nobest install kmod-wireguard >/dev/null 2>&1
+			yum -y -q install wireguard-tools qrencode $firewall >/dev/null 2>&1
+		) || exiterr3
+		mkdir -p /etc/wireguard/
+	elif [[ "$os" == "centos" && "$os_version" -eq 7 ]]; then
+		(
+			set -x
+			yum -y -q install epel-release https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm >/dev/null
+			yum -y -q install yum-plugin-elrepo >/dev/null 2>&1
+			yum -y -q install kmod-wireguard wireguard-tools qrencode $firewall >/dev/null 2>&1
+		) || exiterr3
+		mkdir -p /etc/wireguard/
+	elif [[ "$os" == "fedora" ]]; then
+		(
+			set -x
+			dnf install -y wireguard-tools qrencode $firewall >/dev/null
+		) || exiterr "'dnf install' failed."
+		mkdir -p /etc/wireguard/
+	elif [[ "$os" == "openSUSE" ]]; then
+		(
+			set -x
+			zypper install -y wireguard-tools qrencode $firewall >/dev/null
+		) || exiterr4
+		mkdir -p /etc/wireguard/
+	fi
+	[ ! -d /etc/wireguard ] && exiterr2
+	# If firewalld was just installed, enable it
+	if [[ "$firewall" == "firewalld" ]]; then
+		(
+			set -x
+			systemctl enable --now firewalld.service >/dev/null 2>&1
+		)
+	fi
+}
+
+remove_pkgs() {
+	if [[ "$os" == "ubuntu" ]]; then
+		(
+			set -x
+			rm -rf /etc/wireguard/
+			apt-get remove --purge -y wireguard wireguard-tools >/dev/null
+		)
+	elif [[ "$os" == "debian" ]]; then
+		(
+			set -x
+			rm -rf /etc/wireguard/
+			apt-get remove --purge -y wireguard wireguard-tools >/dev/null
+		)
+	elif [[ "$os" == "centos" && "$os_version" -eq 9 ]]; then
+		(
+			set -x
+			yum -y -q remove wireguard-tools >/dev/null
+			rm -rf /etc/wireguard/
+		)
+	elif [[ "$os" == "centos" && "$os_version" -le 8 ]]; then
+		(
+			set -x
+			yum -y -q remove kmod-wireguard wireguard-tools >/dev/null
+			rm -rf /etc/wireguard/
+		)
+	elif [[ "$os" == "fedora" ]]; then
+		(
+			set -x
+			dnf remove -y wireguard-tools >/dev/null
+			rm -rf /etc/wireguard/
+		)
+	elif [[ "$os" == "openSUSE" ]]; then
+		(
+			set -x
+			zypper remove -y wireguard-tools >/dev/null
+			rm -rf /etc/wireguard/
+		)
+	fi
+}
+
+create_server_config() {
+	# Generate wg0.conf
+	cat << EOF > "$WG_CONF"
+# Do not alter the commented lines
+# They are used by wireguard-install
+# ENDPOINT $([[ -n "$public_ip" ]] && echo "$public_ip" || echo "$ip")
+
+[Interface]
+Address = 10.7.0.1/24$([[ -n "$ip6" ]] && echo ", fddd:2c4:2c4:2c4::1/64")
+PrivateKey = $(wg genkey)
+ListenPort = $port
+
+EOF
+	chmod 600 "$WG_CONF"
+}
+
+create_firewall_rules() {
+	if systemctl is-active --quiet firewalld.service; then
+		# Using both permanent and not permanent rules to avoid a firewalld reload
+		firewall-cmd -q --add-port="$port"/udp
+		firewall-cmd -q --zone=trusted --add-source=10.7.0.0/24
+		firewall-cmd -q --permanent --add-port="$port"/udp
+		firewall-cmd -q --permanent --zone=trusted --add-source=10.7.0.0/24
+		# Set NAT for the VPN subnet
+		firewall-cmd -q --direct --add-rule ipv4 nat POSTROUTING 0 -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j MASQUERADE
+		firewall-cmd -q --permanent --direct --add-rule ipv4 nat POSTROUTING 0 -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j MASQUERADE
+		if [[ -n "$ip6" ]]; then
+			firewall-cmd -q --zone=trusted --add-source=fddd:2c4:2c4:2c4::/64
+			firewall-cmd -q --permanent --zone=trusted --add-source=fddd:2c4:2c4:2c4::/64
+			firewall-cmd -q --direct --add-rule ipv6 nat POSTROUTING 0 -s fddd:2c4:2c4:2c4::/64 ! -d fddd:2c4:2c4:2c4::/64 -j MASQUERADE
+			firewall-cmd -q --permanent --direct --add-rule ipv6 nat POSTROUTING 0 -s fddd:2c4:2c4:2c4::/64 ! -d fddd:2c4:2c4:2c4::/64 -j MASQUERADE
+		fi
+	else
+		# Create a service to set up persistent iptables rules
+		iptables_path=$(command -v iptables)
+		ip6tables_path=$(command -v ip6tables)
+		# nf_tables is not available as standard in OVZ kernels. So use iptables-legacy
+		# if we are in OVZ, with a nf_tables backend and iptables-legacy is available.
+		if [[ $(systemd-detect-virt) == "openvz" ]] && readlink -f "$(command -v iptables)" | grep -q "nft" && hash iptables-legacy 2>/dev/null; then
+			iptables_path=$(command -v iptables-legacy)
+			ip6tables_path=$(command -v ip6tables-legacy)
+		fi
+		echo "[Unit]
+Before=network.target
+[Service]
+Type=oneshot
+ExecStart=$iptables_path -t nat -A POSTROUTING -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j MASQUERADE
+ExecStart=$iptables_path -I INPUT -p udp --dport $port -j ACCEPT
+ExecStart=$iptables_path -I FORWARD -s 10.7.0.0/24 -j ACCEPT
+ExecStart=$iptables_path -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
+ExecStop=$iptables_path -t nat -D POSTROUTING -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j MASQUERADE
+ExecStop=$iptables_path -D INPUT -p udp --dport $port -j ACCEPT
+ExecStop=$iptables_path -D FORWARD -s 10.7.0.0/24 -j ACCEPT
+ExecStop=$iptables_path -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT" > /etc/systemd/system/wg-iptables.service
+		if [[ -n "$ip6" ]]; then
+			echo "ExecStart=$ip6tables_path -t nat -A POSTROUTING -s fddd:2c4:2c4:2c4::/64 ! -d fddd:2c4:2c4:2c4::/64 -j MASQUERADE
+ExecStart=$ip6tables_path -I FORWARD -s fddd:2c4:2c4:2c4::/64 -j ACCEPT
+ExecStart=$ip6tables_path -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
+ExecStop=$ip6tables_path -t nat -D POSTROUTING -s fddd:2c4:2c4:2c4::/64 ! -d fddd:2c4:2c4:2c4::/64 -j MASQUERADE
+ExecStop=$ip6tables_path -D FORWARD -s fddd:2c4:2c4:2c4::/64 -j ACCEPT
+ExecStop=$ip6tables_path -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT" >> /etc/systemd/system/wg-iptables.service
+		fi
+		echo "RemainAfterExit=yes
+[Install]
+WantedBy=multi-user.target" >> /etc/systemd/system/wg-iptables.service
+		(
+			set -x
+			systemctl enable --now wg-iptables.service >/dev/null 2>&1
+		)
+	fi
+}
+
+remove_firewall_rules() {
+	port=$(grep '^ListenPort' "$WG_CONF" | cut -d " " -f 3)
+	if systemctl is-active --quiet firewalld.service; then
+		ip=$(firewall-cmd --direct --get-rules ipv4 nat POSTROUTING | grep '\-s 10.7.0.0/24 '"'"'!'"'"' -d 10.7.0.0/24' | grep -oE '[^ ]+$')
+		# Using both permanent and not permanent rules to avoid a firewalld reload.
+		firewall-cmd -q --remove-port="$port"/udp
+		firewall-cmd -q --zone=trusted --remove-source=10.7.0.0/24
+		firewall-cmd -q --permanent --remove-port="$port"/udp
+		firewall-cmd -q --permanent --zone=trusted --remove-source=10.7.0.0/24
+		firewall-cmd -q --direct --remove-rule ipv4 nat POSTROUTING 0 -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j MASQUERADE
+		firewall-cmd -q --permanent --direct --remove-rule ipv4 nat POSTROUTING 0 -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j MASQUERADE
+		if grep -qs 'fddd:2c4:2c4:2c4::1/64' "$WG_CONF"; then
+			ip6=$(firewall-cmd --direct --get-rules ipv6 nat POSTROUTING | grep '\-s fddd:2c4:2c4:2c4::/64 '"'"'!'"'"' -d fddd:2c4:2c4:2c4::/64' | grep -oE '[^ ]+$')
+			firewall-cmd -q --zone=trusted --remove-source=fddd:2c4:2c4:2c4::/64
+			firewall-cmd -q --permanent --zone=trusted --remove-source=fddd:2c4:2c4:2c4::/64
+			firewall-cmd -q --direct --remove-rule ipv6 nat POSTROUTING 0 -s fddd:2c4:2c4:2c4::/64 ! -d fddd:2c4:2c4:2c4::/64 -j MASQUERADE
+			firewall-cmd -q --permanent --direct --remove-rule ipv6 nat POSTROUTING 0 -s fddd:2c4:2c4:2c4::/64 ! -d fddd:2c4:2c4:2c4::/64 -j MASQUERADE
+		fi
+	else
+		systemctl disable --now wg-iptables.service
+		rm -f /etc/systemd/system/wg-iptables.service
+	fi
+}
+
+start_wg_service() {
+	# Enable and start the wg-quick service
+	(
+		set -x
+		systemctl enable --now wg-quick@wg0.service >/dev/null 2>&1
+	)
+}
+
+show_client_qr_code() {
+	qrencode -t UTF8 < "$export_dir$client".conf
+	echo -e '\xE2\x86\x91 That is a QR code containing the client configuration.'
+}
+
+finish_setup() {
+	echo
+	# If the kernel module didn't load, system probably had an outdated kernel
+	if ! modprobe -nq wireguard; then
+		echo "Warning!"
+		echo "Installation was finished, but the WireGuard kernel module could not load."
+		echo "Reboot the system to load the most recent kernel."
+	else
+		echo "Finished!"
+	fi
+	echo
+	echo "The client configuration is available in: $export_dir$client.conf"
+	echo "New clients can be added by running this script again."
+}
+
+show_clients() {
+	grep '^# BEGIN_PEER' "$WG_CONF" | cut -d ' ' -f 3 | nl -s ') '
+}
+
 new_client_dns() {
 	if [ "$auto" = 0 ]; then
 		echo
@@ -417,7 +689,7 @@ select_client_ip() {
 	# Given a list of the assigned internal IPv4 addresses, obtain the lowest still
 	# available octet. Important to start looking at 2, because 1 is our gateway.
 	octet=2
-	while grep AllowedIPs /etc/wireguard/wg0.conf | cut -d "." -f 4 | cut -d "/" -f 1 | grep -q "$octet"; do
+	while grep AllowedIPs "$WG_CONF" | cut -d "." -f 4 | cut -d "/" -f 1 | grep -q "$octet"; do
 		(( octet++ ))
 	done
 	# Don't break the WireGuard configuration in case the address space is full
@@ -445,7 +717,7 @@ new_client_setup() {
 		read -rp "Enter IP address for the new client (e.g. 10.7.0.X): " client_ip
 		octet=$(printf '%s' "$client_ip" | cut -d "." -f 4)
 		until [[ $client_ip =~ ^10\.7\.0\.([2-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-4])$ ]] \
-			&& ! grep AllowedIPs /etc/wireguard/wg0.conf | cut -d "." -f 4 | cut -d "/" -f 1 | grep -q "$octet"; do
+			&& ! grep AllowedIPs "$WG_CONF" | cut -d "." -f 4 | cut -d "/" -f 1 | grep -q "$octet"; do
 			if [[ ! $client_ip =~ ^10\.7\.0\.([2-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-4])$ ]]; then
 				echo "Invalid IP address. Must be within the range 10.7.0.2 to 10.7.0.254."
 			else
@@ -458,27 +730,27 @@ new_client_setup() {
 	key=$(wg genkey)
 	psk=$(wg genpsk)
 	# Configure client in the server
-	cat << EOF >> /etc/wireguard/wg0.conf
+	cat << EOF >> "$WG_CONF"
 # BEGIN_PEER $client
 [Peer]
 PublicKey = $(wg pubkey <<< "$key")
 PresharedKey = $psk
-AllowedIPs = 10.7.0.$octet/32$(grep -q 'fddd:2c4:2c4:2c4::1' /etc/wireguard/wg0.conf && echo ", fddd:2c4:2c4:2c4::$octet/128")
+AllowedIPs = 10.7.0.$octet/32$(grep -q 'fddd:2c4:2c4:2c4::1' "$WG_CONF" && echo ", fddd:2c4:2c4:2c4::$octet/128")
 # END_PEER $client
 EOF
 	# Create client configuration
 	get_export_dir
 	cat << EOF > "$export_dir$client".conf
 [Interface]
-Address = 10.7.0.$octet/24$(grep -q 'fddd:2c4:2c4:2c4::1' /etc/wireguard/wg0.conf && echo ", fddd:2c4:2c4:2c4::$octet/64")
+Address = 10.7.0.$octet/24$(grep -q 'fddd:2c4:2c4:2c4::1' "$WG_CONF" && echo ", fddd:2c4:2c4:2c4::$octet/64")
 DNS = $dns
 PrivateKey = $key
 
 [Peer]
-PublicKey = $(grep PrivateKey /etc/wireguard/wg0.conf | cut -d " " -f 3 | wg pubkey)
+PublicKey = $(grep PrivateKey "$WG_CONF" | cut -d " " -f 3 | wg pubkey)
 PresharedKey = $psk
 AllowedIPs = 0.0.0.0/0, ::/0
-Endpoint = $(grep '^# ENDPOINT' /etc/wireguard/wg0.conf | cut -d " " -f 3):$(grep ListenPort /etc/wireguard/wg0.conf | cut -d " " -f 3)
+Endpoint = $(grep '^# ENDPOINT' "$WG_CONF" | cut -d " " -f 3):$(grep ListenPort "$WG_CONF" | cut -d " " -f 3)
 PersistentKeepalive = 25
 EOF
 	if [ "$export_to_home_dir" = 1 ]; then
@@ -555,6 +827,24 @@ Copyright (c) 2020-2023 Nyr
 EOF
 }
 
+select_menu_option() {
+	echo
+	echo "WireGuard is already installed."
+	echo
+	echo "Select an option:"
+	echo "   1) Add a new client"
+	echo "   2) List existing clients"
+	echo "   3) Remove an existing client"
+	echo "   4) Show QR code for a client"
+	echo "   5) Remove WireGuard"
+	echo "   6) Exit"
+	read -rp "Option: " option
+	until [[ "$option" =~ ^[1-6]$ ]]; do
+		echo "$option: invalid selection."
+		read -rp "Option: " option
+	done
+}
+
 show_usage() {
 	if [ -n "$1" ]; then
 		echo "Error: $1" >&2
@@ -578,44 +868,19 @@ wgsetup() {
 
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-if [ "$(id -u)" != 0 ]; then
-	exiterr "This installer must be run as root. Try 'sudo bash $0'"
-fi
-
-# Detect Debian users running the script with "sh" instead of bash
-if readlink /proc/$$/exe | grep -q "dash"; then
-	exiterr 'This installer needs to be run with "bash", not "sh".'
-fi
-
-# Detect OpenVZ 6
-if [[ $(uname -r | cut -d "." -f 1) -eq 2 ]]; then
-	exiterr "The system is running an old kernel, which is incompatible with this installer."
-fi
-
+check_root
+check_shell
+check_kernel
 check_os
 check_os_ver
+check_container
 
-if systemd-detect-virt -cq 2>/dev/null; then
-	exiterr "This system is running inside a container, which is not supported by this installer."
-fi
+WG_CONF="/etc/wireguard/wg0.conf"
 
 auto=0
-if [[ ! -e /etc/wireguard/wg0.conf ]]; then
+if [[ ! -e "$WG_CONF" ]]; then
 	check_nftables
-	while [ "$#" -gt 0 ]; do
-		case $1 in
-			--auto)
-				auto=1
-				shift
-				;;
-			-h|--help)
-				show_usage
-				;;
-			*)
-				show_usage "Unknown parameter: $1"
-				;;
-		esac
-	done
+	parse_args "$@"
 	install_wget
 	install_iproute
 	show_start_setup
@@ -639,173 +904,21 @@ if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 	confirm_setup
 	echo
 	echo "Installing WireGuard, please wait..."
-	if [[ "$os" == "ubuntu" ]]; then
-		export DEBIAN_FRONTEND=noninteractive
-		(
-			set -x
-			apt-get -yqq update || apt-get -yqq update
-			apt-get -yqq install wireguard qrencode $firewall >/dev/null
-		) || exiterr2
-	elif [[ "$os" == "debian" ]]; then
-		export DEBIAN_FRONTEND=noninteractive
-		(
-			set -x
-			apt-get -yqq update || apt-get -yqq update
-			apt-get -yqq install wireguard qrencode $firewall >/dev/null
-		) || exiterr2
-	elif [[ "$os" == "centos" && "$os_version" -eq 9 ]]; then
-		(
-			set -x
-			yum -y -q install epel-release >/dev/null
-			yum -y -q install wireguard-tools qrencode $firewall >/dev/null 2>&1
-		) || exiterr3
-		mkdir -p /etc/wireguard/
-	elif [[ "$os" == "centos" && "$os_version" -eq 8 ]]; then
-		(
-			set -x
-			yum -y -q install epel-release elrepo-release >/dev/null
-			yum -y -q --nobest install kmod-wireguard >/dev/null 2>&1
-			yum -y -q install wireguard-tools qrencode $firewall >/dev/null 2>&1
-		) || exiterr3
-		mkdir -p /etc/wireguard/
-	elif [[ "$os" == "centos" && "$os_version" -eq 7 ]]; then
-		(
-			set -x
-			yum -y -q install epel-release https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm >/dev/null
-			yum -y -q install yum-plugin-elrepo >/dev/null 2>&1
-			yum -y -q install kmod-wireguard wireguard-tools qrencode $firewall >/dev/null 2>&1
-		) || exiterr3
-		mkdir -p /etc/wireguard/
-	elif [[ "$os" == "fedora" ]]; then
-		(
-			set -x
-			dnf install -y wireguard-tools qrencode $firewall >/dev/null
-		) || exiterr "'dnf install' failed."
-		mkdir -p /etc/wireguard/
-	elif [[ "$os" == "openSUSE" ]]; then
-		(
-			set -x
-			zypper install -y wireguard-tools qrencode $firewall >/dev/null
-		) || exiterr4
-		mkdir -p /etc/wireguard/
-	fi
-	[ ! -d /etc/wireguard ] && exiterr2
-	# If firewalld was just installed, enable it
-	if [[ "$firewall" == "firewalld" ]]; then
-		(
-			set -x
-			systemctl enable --now firewalld.service >/dev/null 2>&1
-		)
-	fi
-	# Generate wg0.conf
-	cat << EOF > /etc/wireguard/wg0.conf
-# Do not alter the commented lines
-# They are used by wireguard-install
-# ENDPOINT $([[ -n "$public_ip" ]] && echo "$public_ip" || echo "$ip")
-
-[Interface]
-Address = 10.7.0.1/24$([[ -n "$ip6" ]] && echo ", fddd:2c4:2c4:2c4::1/64")
-PrivateKey = $(wg genkey)
-ListenPort = $port
-
-EOF
-	chmod 600 /etc/wireguard/wg0.conf
+	install_pkgs
+	create_server_config
 	update_sysctl
-	if systemctl is-active --quiet firewalld.service; then
-		# Using both permanent and not permanent rules to avoid a firewalld reload
-		firewall-cmd -q --add-port="$port"/udp
-		firewall-cmd -q --zone=trusted --add-source=10.7.0.0/24
-		firewall-cmd -q --permanent --add-port="$port"/udp
-		firewall-cmd -q --permanent --zone=trusted --add-source=10.7.0.0/24
-		# Set NAT for the VPN subnet
-		firewall-cmd -q --direct --add-rule ipv4 nat POSTROUTING 0 -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j MASQUERADE
-		firewall-cmd -q --permanent --direct --add-rule ipv4 nat POSTROUTING 0 -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j MASQUERADE
-		if [[ -n "$ip6" ]]; then
-			firewall-cmd -q --zone=trusted --add-source=fddd:2c4:2c4:2c4::/64
-			firewall-cmd -q --permanent --zone=trusted --add-source=fddd:2c4:2c4:2c4::/64
-			firewall-cmd -q --direct --add-rule ipv6 nat POSTROUTING 0 -s fddd:2c4:2c4:2c4::/64 ! -d fddd:2c4:2c4:2c4::/64 -j MASQUERADE
-			firewall-cmd -q --permanent --direct --add-rule ipv6 nat POSTROUTING 0 -s fddd:2c4:2c4:2c4::/64 ! -d fddd:2c4:2c4:2c4::/64 -j MASQUERADE
-		fi
-	else
-		# Create a service to set up persistent iptables rules
-		iptables_path=$(command -v iptables)
-		ip6tables_path=$(command -v ip6tables)
-		# nf_tables is not available as standard in OVZ kernels. So use iptables-legacy
-		# if we are in OVZ, with a nf_tables backend and iptables-legacy is available.
-		if [[ $(systemd-detect-virt) == "openvz" ]] && readlink -f "$(command -v iptables)" | grep -q "nft" && hash iptables-legacy 2>/dev/null; then
-			iptables_path=$(command -v iptables-legacy)
-			ip6tables_path=$(command -v ip6tables-legacy)
-		fi
-		echo "[Unit]
-Before=network.target
-[Service]
-Type=oneshot
-ExecStart=$iptables_path -t nat -A POSTROUTING -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j MASQUERADE
-ExecStart=$iptables_path -I INPUT -p udp --dport $port -j ACCEPT
-ExecStart=$iptables_path -I FORWARD -s 10.7.0.0/24 -j ACCEPT
-ExecStart=$iptables_path -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
-ExecStop=$iptables_path -t nat -D POSTROUTING -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j MASQUERADE
-ExecStop=$iptables_path -D INPUT -p udp --dport $port -j ACCEPT
-ExecStop=$iptables_path -D FORWARD -s 10.7.0.0/24 -j ACCEPT
-ExecStop=$iptables_path -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT" > /etc/systemd/system/wg-iptables.service
-		if [[ -n "$ip6" ]]; then
-			echo "ExecStart=$ip6tables_path -t nat -A POSTROUTING -s fddd:2c4:2c4:2c4::/64 ! -d fddd:2c4:2c4:2c4::/64 -j MASQUERADE
-ExecStart=$ip6tables_path -I FORWARD -s fddd:2c4:2c4:2c4::/64 -j ACCEPT
-ExecStart=$ip6tables_path -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
-ExecStop=$ip6tables_path -t nat -D POSTROUTING -s fddd:2c4:2c4:2c4::/64 ! -d fddd:2c4:2c4:2c4::/64 -j MASQUERADE
-ExecStop=$ip6tables_path -D FORWARD -s fddd:2c4:2c4:2c4::/64 -j ACCEPT
-ExecStop=$ip6tables_path -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT" >> /etc/systemd/system/wg-iptables.service
-		fi
-		echo "RemainAfterExit=yes
-[Install]
-WantedBy=multi-user.target" >> /etc/systemd/system/wg-iptables.service
-		(
-			set -x
-			systemctl enable --now wg-iptables.service >/dev/null 2>&1
-		)
-	fi
+	create_firewall_rules
 	if [ "$os" != "openSUSE" ]; then
 		update_rclocal
 	fi
-	# Generates the custom client.conf
 	new_client_setup
-	# Enable and start the wg-quick service
-	(
-		set -x
-		systemctl enable --now wg-quick@wg0.service >/dev/null 2>&1
-	)
+	start_wg_service
 	echo
-	qrencode -t UTF8 < "$export_dir$client".conf
-	echo -e '\xE2\x86\x91 That is a QR code containing the client configuration.'
-	echo
-	# If the kernel module didn't load, system probably had an outdated kernel
-	if ! modprobe -nq wireguard; then
-		echo "Warning!"
-		echo "Installation was finished, but the WireGuard kernel module could not load."
-		echo "Reboot the system to load the most recent kernel."
-	else
-		echo "Finished!"
-	fi
-	echo
-	echo "The client configuration is available in: $export_dir$client.conf"
-	echo "New clients can be added by running this script again."
+	show_client_qr_code
+	finish_setup
 else
 	show_header
-	echo
-	echo "WireGuard is already installed."
-	echo
-	echo "Select an option:"
-	echo "   1) Add a new client"
-	echo "   2) List existing clients"
-	echo "   3) Remove an existing client"
-	echo "   4) Show QR code for a client"
-	echo "   5) Remove WireGuard"
-	echo "   6) Exit"
-	read -rp "Option: " option
-	until [[ "$option" =~ ^[1-6]$ ]]; do
-		echo "$option: invalid selection."
-		read -rp "Option: " option
-	done
+	select_menu_option
 	case "$option" in
 		1)
 			echo
@@ -813,7 +926,7 @@ else
 			read -rp "Name: " unsanitized_client
 			[ -z "$unsanitized_client" ] && abort_and_exit
 			set_client_name
-			while [[ -z "$client" ]] || grep -q "^# BEGIN_PEER $client$" /etc/wireguard/wg0.conf; do
+			while [[ -z "$client" ]] || grep -q "^# BEGIN_PEER $client$" "$WG_CONF"; do
 				echo "$client: invalid name."
 				read -rp "Name: " unsanitized_client
 				[ -z "$unsanitized_client" ] && abort_and_exit
@@ -822,10 +935,9 @@ else
 			new_client_dns
 			new_client_setup add_client
 			# Append new client configuration to the WireGuard interface
-			wg addconf wg0 <(sed -n "/^# BEGIN_PEER $client/,/^# END_PEER $client/p" /etc/wireguard/wg0.conf)
+			wg addconf wg0 <(sed -n "/^# BEGIN_PEER $client/,/^# END_PEER $client/p" "$WG_CONF")
 			echo
-			qrencode -t UTF8 < "$export_dir$client".conf
-			echo -e '\xE2\x86\x91 That is a QR code containing the client configuration.'
+			show_client_qr_code
 			echo
 			echo "$client added. Configuration available in: $export_dir$client.conf"
 			exit
@@ -833,14 +945,14 @@ else
 		2)
 			echo
 			echo "Checking for existing client(s)..."
-			num_of_clients=$(grep -c '^# BEGIN_PEER' /etc/wireguard/wg0.conf)
+			num_of_clients=$(grep -c '^# BEGIN_PEER' "$WG_CONF")
 			if [[ "$num_of_clients" = 0 ]]; then
 				echo
 				echo "There are no existing clients!"
 				exit
 			fi
 			echo
-			grep '^# BEGIN_PEER' /etc/wireguard/wg0.conf | cut -d ' ' -f 3 | nl -s ') '
+			show_clients
 			if [ "$num_of_clients" = 1 ]; then
 				printf '\n%s\n' "Total: 1 client"
 			elif [ -n "$num_of_clients" ]; then
@@ -849,7 +961,7 @@ else
 			exit
 		;;
 		3)
-			num_of_clients=$(grep -c '^# BEGIN_PEER' /etc/wireguard/wg0.conf)
+			num_of_clients=$(grep -c '^# BEGIN_PEER' "$WG_CONF")
 			if [[ "$num_of_clients" = 0 ]]; then
 				echo
 				echo "There are no existing clients!"
@@ -857,7 +969,7 @@ else
 			fi
 			echo
 			echo "Select the client to remove:"
-			grep '^# BEGIN_PEER' /etc/wireguard/wg0.conf | cut -d ' ' -f 3 | nl -s ') '
+			show_clients
 			read -rp "Client: " client_num
 			[ -z "$client_num" ] && abort_and_exit
 			until [[ "$client_num" =~ ^[0-9]+$ && "$client_num" -le "$num_of_clients" ]]; do
@@ -865,7 +977,7 @@ else
 				read -rp "Client: " client_num
 				[ -z "$client_num" ] && abort_and_exit
 			done
-			client=$(grep '^# BEGIN_PEER' /etc/wireguard/wg0.conf | cut -d ' ' -f 3 | sed -n "$client_num"p)
+			client=$(grep '^# BEGIN_PEER' "$WG_CONF" | cut -d ' ' -f 3 | sed -n "$client_num"p)
 			echo
 			read -rp "Confirm $client removal? [y/N]: " remove
 			until [[ "$remove" =~ ^[yYnN]*$ ]]; do
@@ -877,9 +989,9 @@ else
 				echo "Removing $client..."
 				# The following is the right way to avoid disrupting other active connections:
 				# Remove from the live interface
-				wg set wg0 peer "$(sed -n "/^# BEGIN_PEER $client$/,\$p" /etc/wireguard/wg0.conf | grep -m 1 PublicKey | cut -d " " -f 3)" remove
+				wg set wg0 peer "$(sed -n "/^# BEGIN_PEER $client$/,\$p" "$WG_CONF" | grep -m 1 PublicKey | cut -d " " -f 3)" remove
 				# Remove from the configuration file
-				sed -i "/^# BEGIN_PEER $client$/,/^# END_PEER $client$/d" /etc/wireguard/wg0.conf
+				sed -i "/^# BEGIN_PEER $client$/,/^# END_PEER $client$/d" "$WG_CONF"
 				get_export_dir
 				wg_file="$export_dir$client.conf"
 				if [ -f "$wg_file" ]; then
@@ -895,7 +1007,7 @@ else
 			exit
 		;;
 		4)
-			num_of_clients=$(grep -c '^# BEGIN_PEER' /etc/wireguard/wg0.conf)
+			num_of_clients=$(grep -c '^# BEGIN_PEER' "$WG_CONF")
 			if [[ "$num_of_clients" = 0 ]]; then
 				echo
 				echo "There are no existing clients!"
@@ -903,7 +1015,7 @@ else
 			fi
 			echo
 			echo "Select the client to show QR code for:"
-			grep '^# BEGIN_PEER' /etc/wireguard/wg0.conf | cut -d ' ' -f 3 | nl -s ') '
+			show_clients
 			read -rp "Client: " client_num
 			[ -z "$client_num" ] && abort_and_exit
 			until [[ "$client_num" =~ ^[0-9]+$ && "$client_num" -le "$num_of_clients" ]]; do
@@ -911,7 +1023,7 @@ else
 				read -rp "Client: " client_num
 				[ -z "$client_num" ] && abort_and_exit
 			done
-			client=$(grep '^# BEGIN_PEER' /etc/wireguard/wg0.conf | cut -d ' ' -f 3 | sed -n "$client_num"p)
+			client=$(grep '^# BEGIN_PEER' "$WG_CONF" | cut -d ' ' -f 3 | sed -n "$client_num"p)
 			echo
 			get_export_dir
 			wg_file="$export_dir$client.conf"
@@ -920,8 +1032,7 @@ else
 				echo "       You may instead re-run this script and add a new client." >&2
 				exit 1
 			fi
-			qrencode -t UTF8 < "$wg_file"
-			echo -e '\xE2\x86\x91 That is a QR code containing the client configuration.'
+			show_client_qr_code
 			echo
 			echo "Configuration for '$client' is available in: $wg_file"
 			exit
@@ -936,27 +1047,7 @@ else
 			if [[ "$remove" =~ ^[yY]$ ]]; then
 				echo
 				echo "Removing WireGuard, please wait..."
-				port=$(grep '^ListenPort' /etc/wireguard/wg0.conf | cut -d " " -f 3)
-				if systemctl is-active --quiet firewalld.service; then
-					ip=$(firewall-cmd --direct --get-rules ipv4 nat POSTROUTING | grep '\-s 10.7.0.0/24 '"'"'!'"'"' -d 10.7.0.0/24' | grep -oE '[^ ]+$')
-					# Using both permanent and not permanent rules to avoid a firewalld reload.
-					firewall-cmd -q --remove-port="$port"/udp
-					firewall-cmd -q --zone=trusted --remove-source=10.7.0.0/24
-					firewall-cmd -q --permanent --remove-port="$port"/udp
-					firewall-cmd -q --permanent --zone=trusted --remove-source=10.7.0.0/24
-					firewall-cmd -q --direct --remove-rule ipv4 nat POSTROUTING 0 -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j MASQUERADE
-					firewall-cmd -q --permanent --direct --remove-rule ipv4 nat POSTROUTING 0 -s 10.7.0.0/24 ! -d 10.7.0.0/24 -j MASQUERADE
-					if grep -qs 'fddd:2c4:2c4:2c4::1/64' /etc/wireguard/wg0.conf; then
-						ip6=$(firewall-cmd --direct --get-rules ipv6 nat POSTROUTING | grep '\-s fddd:2c4:2c4:2c4::/64 '"'"'!'"'"' -d fddd:2c4:2c4:2c4::/64' | grep -oE '[^ ]+$')
-						firewall-cmd -q --zone=trusted --remove-source=fddd:2c4:2c4:2c4::/64
-						firewall-cmd -q --permanent --zone=trusted --remove-source=fddd:2c4:2c4:2c4::/64
-						firewall-cmd -q --direct --remove-rule ipv6 nat POSTROUTING 0 -s fddd:2c4:2c4:2c4::/64 ! -d fddd:2c4:2c4:2c4::/64 -j MASQUERADE
-						firewall-cmd -q --permanent --direct --remove-rule ipv6 nat POSTROUTING 0 -s fddd:2c4:2c4:2c4::/64 ! -d fddd:2c4:2c4:2c4::/64 -j MASQUERADE
-					fi
-				else
-					systemctl disable --now wg-iptables.service
-					rm -f /etc/systemd/system/wg-iptables.service
-				fi
+				remove_firewall_rules
 				systemctl disable --now wg-quick@wg0.service
 				rm -f /etc/sysctl.d/99-wireguard-forward.conf /etc/sysctl.d/99-wireguard-optimize.conf
 				if [ ! -f /usr/sbin/openvpn ] && [ ! -f /usr/sbin/ipsec ] \
@@ -968,43 +1059,7 @@ else
 				if grep -qs "$ipt_cmd" /etc/rc.local; then
 					sed --follow-symlinks -i "/^$ipt_cmd/d" /etc/rc.local
 				fi
-				if [[ "$os" == "ubuntu" ]]; then
-					(
-						set -x
-						rm -rf /etc/wireguard/
-						apt-get remove --purge -y wireguard wireguard-tools >/dev/null
-					)
-				elif [[ "$os" == "debian" ]]; then
-					(
-						set -x
-						rm -rf /etc/wireguard/
-						apt-get remove --purge -y wireguard wireguard-tools >/dev/null
-					)
-				elif [[ "$os" == "centos" && "$os_version" -eq 9 ]]; then
-					(
-						set -x
-						yum -y -q remove wireguard-tools >/dev/null
-						rm -rf /etc/wireguard/
-					)
-				elif [[ "$os" == "centos" && "$os_version" -le 8 ]]; then
-					(
-						set -x
-						yum -y -q remove kmod-wireguard wireguard-tools >/dev/null
-						rm -rf /etc/wireguard/
-					)
-				elif [[ "$os" == "fedora" ]]; then
-					(
-						set -x
-						dnf remove -y wireguard-tools >/dev/null
-						rm -rf /etc/wireguard/
-					)
-				elif [[ "$os" == "openSUSE" ]]; then
-					(
-						set -x
-						zypper remove -y wireguard-tools >/dev/null
-						rm -rf /etc/wireguard/
-					)
-				fi
+				remove_pkgs
 				echo
 				echo "WireGuard removed!"
 			else
