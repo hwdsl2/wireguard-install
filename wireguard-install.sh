@@ -21,6 +21,11 @@ check_ip() {
 	printf '%s' "$1" | tr -d '\n' | grep -Eq "$IP_REGEX"
 }
 
+check_dns_name() {
+	FQDN_REGEX='^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$'
+	printf '%s' "$1" | tr -d '\n' | grep -Eq "$FQDN_REGEX"
+}
+
 check_root() {
 	if [ "$(id -u)" != 0 ]; then
 		exiterr "This installer must be run as root. Try 'sudo bash $0'"
@@ -68,12 +73,10 @@ check_os_ver() {
 		exiterr "Ubuntu 20.04 or higher is required to use this installer.
 This version of Ubuntu is too old and unsupported."
 	fi
-
 	if [[ "$os" == "debian" && "$os_version" -lt 11 ]]; then
 		exiterr "Debian 11 or higher is required to use this installer.
 This version of Debian is too old and unsupported."
 	fi
-
 	if [[ "$os" == "centos" && "$os_version" -lt 7 ]]; then
 		exiterr "CentOS 7 or higher is required to use this installer.
 This version of CentOS is too old and unsupported."
@@ -110,11 +113,6 @@ check_nftables() {
 			exiterr "This system has nftables enabled, which is not supported by this installer."
 		fi
 	fi
-}
-
-check_dns_name() {
-	FQDN_REGEX='^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$'
-	printf '%s' "$1" | tr -d '\n' | grep -Eq "$FQDN_REGEX"
 }
 
 install_wget() {
@@ -160,11 +158,52 @@ install_iproute() {
 	fi
 }
 
-show_start_setup() {
+show_header() {
+cat <<'EOF'
+
+WireGuard Script
+https://github.com/hwdsl2/wireguard-install
+EOF
+}
+
+show_header2() {
+cat <<'EOF'
+
+Welcome to this WireGuard server installer!
+GitHub: https://github.com/hwdsl2/wireguard-install
+EOF
+}
+
+show_header3() {
+cat <<'EOF'
+
+Copyright (c) 2022-2024 Lin Song
+Copyright (c) 2020-2023 Nyr
+EOF
+}
+
+show_usage() {
+	if [ -n "$1" ]; then
+		echo "Error: $1" >&2
+	fi
+	show_header
+	show_header3
+cat 1>&2 <<EOF
+
+Usage: bash $0 [options]
+
+Options:
+  --auto      auto install WireGuard using default options
+  -h, --help  show this help message and exit
+
+To customize install options, run this script without arguments.
+EOF
+	exit 1
+}
+
+show_welcome() {
 	if [ "$auto" = 0 ]; then
-		echo
-		echo 'Welcome to this WireGuard server installer!'
-		echo 'GitHub: https://github.com/hwdsl2/wireguard-install'
+		show_header2
 		echo
 		echo 'I need to ask you a few questions before starting setup.'
 		echo 'You can use the default options and just press enter if you are OK with them.'
@@ -335,7 +374,7 @@ set_client_name() {
 	client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<< "$unsanitized_client" | cut -c-15)
 }
 
-enter_client_name() {
+enter_first_client_name() {
 	if [ "$auto" = 0 ]; then
 		echo
 		echo "Enter a name for the first client:"
@@ -344,6 +383,13 @@ enter_client_name() {
 		[[ -z "$client" ]] && client=client
 	else
 		client=client
+	fi
+}
+
+show_setup_ready() {
+	if [ "$auto" = 0 ]; then
+		echo
+		echo "WireGuard installation is ready to begin."
 	fi
 }
 
@@ -384,6 +430,11 @@ confirm_setup() {
 				;;
 		esac
 	fi
+}
+
+show_start_setup() {
+	echo
+	echo "Installing WireGuard, please wait..."
 }
 
 install_pkgs() {
@@ -583,39 +634,19 @@ remove_firewall_rules() {
 	fi
 }
 
-start_wg_service() {
-	# Enable and start the wg-quick service
-	(
-		set -x
-		systemctl enable --now wg-quick@wg0.service >/dev/null 2>&1
-	)
-}
-
-show_client_qr_code() {
-	qrencode -t UTF8 < "$export_dir$client".conf
-	echo -e '\xE2\x86\x91 That is a QR code containing the client configuration.'
-}
-
-finish_setup() {
-	echo
-	# If the kernel module didn't load, system probably had an outdated kernel
-	if ! modprobe -nq wireguard; then
-		echo "Warning!"
-		echo "Installation was finished, but the WireGuard kernel module could not load."
-		echo "Reboot the system to load the most recent kernel."
-	else
-		echo "Finished!"
+get_export_dir() {
+	export_to_home_dir=0
+	export_dir=~/
+	if [ -n "$SUDO_USER" ] && getent group "$SUDO_USER" >/dev/null 2>&1; then
+		user_home_dir=$(getent passwd "$SUDO_USER" 2>/dev/null | cut -d: -f6)
+		if [ -d "$user_home_dir" ] && [ "$user_home_dir" != "/" ]; then
+			export_dir="$user_home_dir/"
+			export_to_home_dir=1
+		fi
 	fi
-	echo
-	echo "The client configuration is available in: $export_dir$client.conf"
-	echo "New clients can be added by running this script again."
 }
 
-show_clients() {
-	grep '^# BEGIN_PEER' "$WG_CONF" | cut -d ' ' -f 3 | nl -s ') '
-}
-
-new_client_dns() {
+select_dns() {
 	if [ "$auto" = 0 ]; then
 		echo
 		echo "Select a DNS server for the client:"
@@ -673,18 +704,6 @@ new_client_dns() {
 	esac
 }
 
-get_export_dir() {
-	export_to_home_dir=0
-	export_dir=~/
-	if [ -n "$SUDO_USER" ] && getent group "$SUDO_USER" >/dev/null 2>&1; then
-		user_home_dir=$(getent passwd "$SUDO_USER" 2>/dev/null | cut -d: -f6)
-		if [ -d "$user_home_dir" ] && [ "$user_home_dir" != "/" ]; then
-			export_dir="$user_home_dir/"
-			export_to_home_dir=1
-		fi
-	fi
-}
-
 select_client_ip() {
 	# Given a list of the assigned internal IPv4 addresses, obtain the lowest still
 	# available octet. Important to start looking at 2, because 1 is our gateway.
@@ -698,7 +717,7 @@ select_client_ip() {
 	fi
 }
 
-new_client_setup() {
+new_client() {
 	select_client_ip
 	specify_ip=n
 	if [ "$1" = "add_client" ]; then
@@ -811,20 +830,32 @@ EOF
 	fi
 }
 
-show_header() {
-cat <<'EOF'
-
-WireGuard Script
-https://github.com/hwdsl2/wireguard-install
-EOF
+start_wg_service() {
+	# Enable and start the wg-quick service
+	(
+		set -x
+		systemctl enable --now wg-quick@wg0.service >/dev/null 2>&1
+	)
 }
 
-show_header2() {
-cat <<'EOF'
+show_client_qr_code() {
+	qrencode -t UTF8 < "$export_dir$client".conf
+	echo -e '\xE2\x86\x91 That is a QR code containing the client configuration.'
+}
 
-Copyright (c) 2022-2024 Lin Song
-Copyright (c) 2020-2023 Nyr
-EOF
+finish_setup() {
+	echo
+	# If the kernel module didn't load, system probably had an outdated kernel
+	if ! modprobe -nq wireguard; then
+		echo "Warning!"
+		echo "Installation was finished, but the WireGuard kernel module could not load."
+		echo "Reboot the system to load the most recent kernel."
+	else
+		echo "Finished!"
+	fi
+	echo
+	echo "The client configuration is available in: $export_dir$client.conf"
+	echo "New clients can be added by running this script again."
 }
 
 select_menu_option() {
@@ -845,23 +876,168 @@ select_menu_option() {
 	done
 }
 
-show_usage() {
-	if [ -n "$1" ]; then
-		echo "Error: $1" >&2
+show_clients() {
+	grep '^# BEGIN_PEER' "$WG_CONF" | cut -d ' ' -f 3 | nl -s ') '
+}
+
+enter_client_name() {
+	echo
+	echo "Provide a name for the client:"
+	read -rp "Name: " unsanitized_client
+	[ -z "$unsanitized_client" ] && abort_and_exit
+	set_client_name
+	while [[ -z "$client" ]] || grep -q "^# BEGIN_PEER $client$" "$WG_CONF"; do
+		echo "$client: invalid name."
+		read -rp "Name: " unsanitized_client
+		[ -z "$unsanitized_client" ] && abort_and_exit
+		set_client_name
+	done
+}
+
+update_wg_conf() {
+	# Append new client configuration to the WireGuard interface
+	wg addconf wg0 <(sed -n "/^# BEGIN_PEER $client/,/^# END_PEER $client/p" "$WG_CONF")
+}
+
+print_client_added() {
+	echo
+	echo "$client added. Configuration available in: $export_dir$client.conf"
+}
+
+print_check_clients() {
+	echo
+	echo "Checking for existing client(s)..."
+}
+
+check_clients() {
+	num_of_clients=$(grep -c '^# BEGIN_PEER' "$WG_CONF")
+	if [[ "$num_of_clients" = 0 ]]; then
+		echo
+		echo "There are no existing clients!"
+		exit
 	fi
-	show_header
-	show_header2
-cat 1>&2 <<EOF
+}
 
-Usage: bash $0 [options]
+print_client_total() {
+	if [ "$num_of_clients" = 1 ]; then
+		printf '\n%s\n' "Total: 1 client"
+	elif [ -n "$num_of_clients" ]; then
+		printf '\n%s\n' "Total: $num_of_clients clients"
+	fi
+}
 
-Options:
-  --auto      auto install WireGuard using default options
-  -h, --help  show this help message and exit
+select_client_to() {
+	echo
+	echo "Select the client to $1:"
+	show_clients
+	read -rp "Client: " client_num
+	[ -z "$client_num" ] && abort_and_exit
+	until [[ "$client_num" =~ ^[0-9]+$ && "$client_num" -le "$num_of_clients" ]]; do
+		echo "$client_num: invalid selection."
+		read -rp "Client: " client_num
+		[ -z "$client_num" ] && abort_and_exit
+	done
+	client=$(grep '^# BEGIN_PEER' "$WG_CONF" | cut -d ' ' -f 3 | sed -n "$client_num"p)
+}
 
-To customize install options, run this script without arguments.
-EOF
-	exit 1
+confirm_remove_client() {
+	echo
+	read -rp "Confirm $client removal? [y/N]: " remove
+	until [[ "$remove" =~ ^[yYnN]*$ ]]; do
+		echo "$remove: invalid selection."
+		read -rp "Confirm $client removal? [y/N]: " remove
+	done
+}
+
+remove_client_conf() {
+	get_export_dir
+	wg_file="$export_dir$client.conf"
+	if [ -f "$wg_file" ]; then
+		echo "Removing $wg_file..."
+		rm -f "$wg_file"
+	fi
+}
+
+print_remove_client() {
+	echo
+	echo "Removing $client..."
+}
+
+remove_client() {
+	# The following is the right way to avoid disrupting other active connections:
+	# Remove from the live interface
+	wg set wg0 peer "$(sed -n "/^# BEGIN_PEER $client$/,\$p" "$WG_CONF" | grep -m 1 PublicKey | cut -d " " -f 3)" remove
+	# Remove from the configuration file
+	sed -i "/^# BEGIN_PEER $client$/,/^# END_PEER $client$/d" "$WG_CONF"
+	remove_client_conf
+}
+
+print_client_removed() {
+	echo
+	echo "$client removed!"
+}
+
+print_client_removal_aborted() {
+	echo
+	echo "$client removal aborted!"
+}
+
+check_client_conf() {
+	wg_file="$export_dir$client.conf"
+	if [ ! -f "$wg_file" ]; then
+		echo "Error: Cannot show QR code. Missing client config file $wg_file" >&2
+		echo "       You may instead re-run this script and add a new client." >&2
+		exit 1
+	fi
+}
+
+print_client_conf() {
+	echo
+	echo "Configuration for '$client' is available in: $wg_file"
+}
+
+confirm_remove_wg() {
+	echo
+	read -rp "Confirm WireGuard removal? [y/N]: " remove
+	until [[ "$remove" =~ ^[yYnN]*$ ]]; do
+		echo "$remove: invalid selection."
+		read -rp "Confirm WireGuard removal? [y/N]: " remove
+	done
+}
+
+print_remove_wg() {
+	echo
+	echo "Removing WireGuard, please wait..."
+}
+
+disable_wg_service() {
+	systemctl disable --now wg-quick@wg0.service
+}
+
+remove_sysctl_rules() {
+	rm -f /etc/sysctl.d/99-wireguard-forward.conf /etc/sysctl.d/99-wireguard-optimize.conf
+	if [ ! -f /usr/sbin/openvpn ] && [ ! -f /usr/sbin/ipsec ] \
+		&& [ ! -f /usr/local/sbin/ipsec ]; then
+		echo 0 > /proc/sys/net/ipv4/ip_forward
+		echo 0 > /proc/sys/net/ipv6/conf/all/forwarding
+	fi
+}
+
+remove_rclocal_rules() {
+	ipt_cmd="systemctl restart wg-iptables.service"
+	if grep -qs "$ipt_cmd" /etc/rc.local; then
+		sed --follow-symlinks -i "/^$ipt_cmd/d" /etc/rc.local
+	fi
+}
+
+print_wg_removed() {
+	echo
+	echo "WireGuard removed!"
+}
+
+print_wg_removal_aborted() {
+	echo
+	echo "WireGuard removal aborted!"
 }
 
 wgsetup() {
@@ -883,7 +1059,7 @@ if [[ ! -e "$WG_CONF" ]]; then
 	parse_args "$@"
 	install_wget
 	install_iproute
-	show_start_setup
+	show_welcome
 	public_ip=""
 	if [ "$auto" = 0 ]; then
 		enter_server_address
@@ -894,16 +1070,12 @@ if [[ ! -e "$WG_CONF" ]]; then
 	show_config
 	detect_ipv6
 	select_port
-	enter_client_name
-	new_client_dns
-	if [ "$auto" = 0 ]; then
-		echo
-		echo "WireGuard installation is ready to begin."
-	fi
+	enter_first_client_name
+	select_dns
+	show_setup_ready
 	check_firewall
 	confirm_setup
-	echo
-	echo "Installing WireGuard, please wait..."
+	show_start_setup
 	install_pkgs
 	create_server_config
 	update_sysctl
@@ -911,7 +1083,7 @@ if [[ ! -e "$WG_CONF" ]]; then
 	if [ "$os" != "openSUSE" ]; then
 		update_rclocal
 	fi
-	new_client_setup
+	new_client
 	start_wg_service
 	echo
 	show_client_qr_code
@@ -921,150 +1093,58 @@ else
 	select_menu_option
 	case "$option" in
 		1)
-			echo
-			echo "Provide a name for the client:"
-			read -rp "Name: " unsanitized_client
-			[ -z "$unsanitized_client" ] && abort_and_exit
-			set_client_name
-			while [[ -z "$client" ]] || grep -q "^# BEGIN_PEER $client$" "$WG_CONF"; do
-				echo "$client: invalid name."
-				read -rp "Name: " unsanitized_client
-				[ -z "$unsanitized_client" ] && abort_and_exit
-				set_client_name
-			done
-			new_client_dns
-			new_client_setup add_client
-			# Append new client configuration to the WireGuard interface
-			wg addconf wg0 <(sed -n "/^# BEGIN_PEER $client/,/^# END_PEER $client/p" "$WG_CONF")
+			enter_client_name
+			select_dns
+			new_client add_client
+			update_wg_conf
 			echo
 			show_client_qr_code
-			echo
-			echo "$client added. Configuration available in: $export_dir$client.conf"
+			print_client_added
 			exit
 		;;
 		2)
-			echo
-			echo "Checking for existing client(s)..."
-			num_of_clients=$(grep -c '^# BEGIN_PEER' "$WG_CONF")
-			if [[ "$num_of_clients" = 0 ]]; then
-				echo
-				echo "There are no existing clients!"
-				exit
-			fi
+			print_check_clients
+			check_clients
 			echo
 			show_clients
-			if [ "$num_of_clients" = 1 ]; then
-				printf '\n%s\n' "Total: 1 client"
-			elif [ -n "$num_of_clients" ]; then
-				printf '\n%s\n' "Total: $num_of_clients clients"
-			fi
+			print_client_total
 			exit
 		;;
 		3)
-			num_of_clients=$(grep -c '^# BEGIN_PEER' "$WG_CONF")
-			if [[ "$num_of_clients" = 0 ]]; then
-				echo
-				echo "There are no existing clients!"
-				exit
-			fi
-			echo
-			echo "Select the client to remove:"
-			show_clients
-			read -rp "Client: " client_num
-			[ -z "$client_num" ] && abort_and_exit
-			until [[ "$client_num" =~ ^[0-9]+$ && "$client_num" -le "$num_of_clients" ]]; do
-				echo "$client_num: invalid selection."
-				read -rp "Client: " client_num
-				[ -z "$client_num" ] && abort_and_exit
-			done
-			client=$(grep '^# BEGIN_PEER' "$WG_CONF" | cut -d ' ' -f 3 | sed -n "$client_num"p)
-			echo
-			read -rp "Confirm $client removal? [y/N]: " remove
-			until [[ "$remove" =~ ^[yYnN]*$ ]]; do
-				echo "$remove: invalid selection."
-				read -rp "Confirm $client removal? [y/N]: " remove
-			done
+			check_clients
+			select_client_to remove
+			confirm_remove_client
 			if [[ "$remove" =~ ^[yY]$ ]]; then
-				echo
-				echo "Removing $client..."
-				# The following is the right way to avoid disrupting other active connections:
-				# Remove from the live interface
-				wg set wg0 peer "$(sed -n "/^# BEGIN_PEER $client$/,\$p" "$WG_CONF" | grep -m 1 PublicKey | cut -d " " -f 3)" remove
-				# Remove from the configuration file
-				sed -i "/^# BEGIN_PEER $client$/,/^# END_PEER $client$/d" "$WG_CONF"
-				get_export_dir
-				wg_file="$export_dir$client.conf"
-				if [ -f "$wg_file" ]; then
-					echo "Removing $wg_file..."
-					rm -f "$wg_file"
-				fi
-				echo
-				echo "$client removed!"
+				print_remove_client
+				remove_client
+				print_client_removed
 			else
-				echo
-				echo "$client removal aborted!"
+				print_client_removal_aborted
 			fi
 			exit
 		;;
 		4)
-			num_of_clients=$(grep -c '^# BEGIN_PEER' "$WG_CONF")
-			if [[ "$num_of_clients" = 0 ]]; then
-				echo
-				echo "There are no existing clients!"
-				exit
-			fi
-			echo
-			echo "Select the client to show QR code for:"
-			show_clients
-			read -rp "Client: " client_num
-			[ -z "$client_num" ] && abort_and_exit
-			until [[ "$client_num" =~ ^[0-9]+$ && "$client_num" -le "$num_of_clients" ]]; do
-				echo "$client_num: invalid selection."
-				read -rp "Client: " client_num
-				[ -z "$client_num" ] && abort_and_exit
-			done
-			client=$(grep '^# BEGIN_PEER' "$WG_CONF" | cut -d ' ' -f 3 | sed -n "$client_num"p)
+			check_clients
+			select_client_to "show QR code for"
 			echo
 			get_export_dir
-			wg_file="$export_dir$client.conf"
-			if [ ! -f "$wg_file" ]; then
-				echo "Error: Cannot show QR code. Missing client config file $wg_file" >&2
-				echo "       You may instead re-run this script and add a new client." >&2
-				exit 1
-			fi
+			check_client_conf
 			show_client_qr_code
-			echo
-			echo "Configuration for '$client' is available in: $wg_file"
+			print_client_conf
 			exit
 		;;
 		5)
-			echo
-			read -rp "Confirm WireGuard removal? [y/N]: " remove
-			until [[ "$remove" =~ ^[yYnN]*$ ]]; do
-				echo "$remove: invalid selection."
-				read -rp "Confirm WireGuard removal? [y/N]: " remove
-			done
+			confirm_remove_wg
 			if [[ "$remove" =~ ^[yY]$ ]]; then
-				echo
-				echo "Removing WireGuard, please wait..."
+				print_remove_wg
 				remove_firewall_rules
-				systemctl disable --now wg-quick@wg0.service
-				rm -f /etc/sysctl.d/99-wireguard-forward.conf /etc/sysctl.d/99-wireguard-optimize.conf
-				if [ ! -f /usr/sbin/openvpn ] && [ ! -f /usr/sbin/ipsec ] \
-					&& [ ! -f /usr/local/sbin/ipsec ]; then
-					echo 0 > /proc/sys/net/ipv4/ip_forward
-					echo 0 > /proc/sys/net/ipv6/conf/all/forwarding
-				fi
-				ipt_cmd="systemctl restart wg-iptables.service"
-				if grep -qs "$ipt_cmd" /etc/rc.local; then
-					sed --follow-symlinks -i "/^$ipt_cmd/d" /etc/rc.local
-				fi
+				disable_wg_service
+				remove_sysctl_rules
+				remove_rclocal_rules
 				remove_pkgs
-				echo
-				echo "WireGuard removed!"
+				print_wg_removed
 			else
-				echo
-				echo "WireGuard removal aborted!"
+				print_wg_removal_aborted
 			fi
 			exit
 		;;
