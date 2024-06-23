@@ -89,11 +89,57 @@ check_container() {
 	fi
 }
 
+set_client_name() {
+	# Allow a limited set of characters to avoid conflicts
+	# Limit to 15 characters for compatibility with Linux clients
+	client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<< "$unsanitized_client" | cut -c-15)
+}
+
 parse_args() {
 	while [ "$#" -gt 0 ]; do
 		case $1 in
 			--auto)
 				auto=1
+				shift
+				;;
+			--addclient)
+				add_client=1
+				unsanitized_client="$2"
+				shift
+				shift
+				;;
+			--listclients)
+				list_clients=1
+				shift
+				;;
+			--removeclient)
+				remove_client=1
+				unsanitized_client="$2"
+				shift
+				shift
+				;;
+			--showclientqr)
+				show_client_qr=1
+				unsanitized_client="$2"
+				shift
+				shift
+				;;
+			--uninstall)
+				remove_wg=1
+				shift
+				;;
+			--dns1)
+				dns1="$2"
+				shift
+				shift
+				;;
+			--dns2)
+				dns2="$2"
+				shift
+				shift
+				;;
+			-y|--yes)
+				assume_yes=1
 				shift
 				;;
 			-h|--help)
@@ -104,6 +150,57 @@ parse_args() {
 				;;
 		esac
 	done
+}
+
+check_args() {
+	if [ "$auto" = 1 ] && [ -e "$WG_CONF" ]; then
+		echo "Error: Invalid parameter '--auto'. WireGuard is already set up on this server." >&2
+		echo "       To manage WireGuard clients, re-run this script without '--auto'." >&2
+		exit 1
+	fi
+	if [ "$((add_client + list_clients + remove_client + show_client_qr))" -gt 1 ]; then
+		show_usage "Invalid parameters. Specify only one of '--addclient', '--listclients', '--removeclient' or '--showclientqr'."
+	fi
+	if [ "$remove_wg" = 1 ]; then
+		if [ "$((add_client + list_clients + remove_client + show_client_qr + auto))" -gt 0 ]; then
+			show_usage "Invalid parameters. '--uninstall' cannot be specified with other parameters."
+		fi
+	fi
+	if [ ! -e "$WG_CONF" ]; then
+		[ "$add_client" = 1 ] && exiterr "You must first set up WireGuard before adding a client."
+		[ "$list_clients" = 1 ] && exiterr "You must first set up WireGuard before listing clients."
+		[ "$remove_client" = 1 ] && exiterr "You must first set up WireGuard before removing a client."
+		[ "$show_client_qr" = 1 ] && exiterr "You must first set up WireGuard before showing QR code for a client."
+		[ "$remove_wg" = 1 ] && exiterr "Cannot remove WireGuard because it has not been set up on this server."
+	fi
+	if [ "$add_client" = 1 ]; then
+		set_client_name
+		if [ -z "$client" ]; then
+			exiterr "Invalid client name. Use one word only, no special characters except '-' and '_'."
+		elif grep -q "^# BEGIN_PEER $client$" "$WG_CONF"; then
+			exiterr "$client: invalid name. Client already exists."
+		fi
+		if { [ -n "$dns1" ] && ! check_ip "$dns1"; } \
+			|| { [ -n "$dns2" ] && ! check_ip "$dns2"; }; then
+			exiterr "Invalid DNS server(s)."
+		fi
+		if [ -z "$dns1" ] && [ -n "$dns2" ]; then
+			exiterr "Invalid DNS server. --dns2 cannot be specified without --dns1."
+		fi
+		if [ -n "$dns1" ] && [ -n "$dns2" ]; then
+			dns="$dns1, $dns2"
+		elif [ -n "$dns1" ]; then
+			dns="$dns1"
+		else
+			dns="8.8.8.8, 8.8.4.4"
+		fi
+	fi
+	if [ "$remove_client" = 1 ] || [ "$show_client_qr" = 1 ]; then
+		set_client_name
+		if [ -z "$client" ] || ! grep -q "^# BEGIN_PEER $client$" "$WG_CONF"; then
+			exiterr "Invalid client name, or client does not exist."
+		fi
+	fi
 }
 
 check_nftables() {
@@ -171,6 +268,7 @@ cat <<'EOF'
 
 Welcome to this WireGuard server installer!
 GitHub: https://github.com/hwdsl2/wireguard-install
+
 EOF
 }
 
@@ -193,8 +291,16 @@ cat 1>&2 <<EOF
 Usage: bash $0 [options]
 
 Options:
-  --auto      auto install WireGuard using default options
-  -h, --help  show this help message and exit
+  --auto                        auto install WireGuard using default options
+  --addclient [client name]     add a new client
+  --dns1 [DNS server IP]        primary DNS server for new client (optional, defaults to Google Public DNS)
+  --dns2 [DNS server IP]        secondary DNS server for new client (optional)
+  --listclients                 list the names of existing clients
+  --removeclient [client name]  remove an existing client
+  --showclientqr [client name]  show QR code for an existing client
+  --uninstall                   remove WireGuard and delete all configuration
+  -y, --yes                     assume "yes" as answer to prompts when removing a client or removing WireGuard
+  -h, --help                    show this help message and exit
 
 To customize install options, run this script without arguments.
 EOF
@@ -204,7 +310,6 @@ EOF
 show_welcome() {
 	if [ "$auto" = 0 ]; then
 		show_header2
-		echo
 		echo 'I need to ask you a few questions before starting setup.'
 		echo 'You can use the default options and just press enter if you are OK with them.'
 	else
@@ -366,12 +471,6 @@ enter_custom_dns() {
 		echo "Invalid DNS server."
 		read -rp "Enter secondary DNS server (Enter to skip): " dns2
 	done
-}
-
-set_client_name() {
-	# Allow a limited set of characters to avoid conflicts
-	# Limit to 15 characters for compatibility with Linux clients
-	client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<< "$unsanitized_client" | cut -c-15)
 }
 
 enter_first_client_name() {
@@ -720,7 +819,7 @@ select_client_ip() {
 new_client() {
 	select_client_ip
 	specify_ip=n
-	if [ "$1" = "add_client" ]; then
+	if [ "$1" = "add_client" ] && [ "$add_client" = 0 ]; then
 		echo
 		read -rp "Do you want to specify an internal IP address for the new client? [y/N]: " specify_ip
 		until [[ "$specify_ip" =~ ^[yYnN]*$ ]]; do
@@ -887,7 +986,11 @@ enter_client_name() {
 	[ -z "$unsanitized_client" ] && abort_and_exit
 	set_client_name
 	while [[ -z "$client" ]] || grep -q "^# BEGIN_PEER $client$" "$WG_CONF"; do
-		echo "$client: invalid name."
+		if [ -z "$client" ]; then
+			echo "Invalid client name. Use one word only, no special characters except '-' and '_'."
+		else
+			echo "$client: invalid name. Client already exists."
+		fi
 		read -rp "Name: " unsanitized_client
 		[ -z "$unsanitized_client" ] && abort_and_exit
 		set_client_name
@@ -914,7 +1017,7 @@ check_clients() {
 	if [[ "$num_of_clients" = 0 ]]; then
 		echo
 		echo "There are no existing clients!"
-		exit
+		exit 1
 	fi
 }
 
@@ -941,12 +1044,16 @@ select_client_to() {
 }
 
 confirm_remove_client() {
-	echo
-	read -rp "Confirm $client removal? [y/N]: " remove
-	until [[ "$remove" =~ ^[yYnN]*$ ]]; do
-		echo "$remove: invalid selection."
+	if [ "$assume_yes" != 1 ]; then
+		echo
 		read -rp "Confirm $client removal? [y/N]: " remove
-	done
+		until [[ "$remove" =~ ^[yYnN]*$ ]]; do
+			echo "$remove: invalid selection."
+			read -rp "Confirm $client removal? [y/N]: " remove
+		done
+	else
+		remove=y
+	fi
 }
 
 remove_client_conf() {
@@ -963,7 +1070,7 @@ print_remove_client() {
 	echo "Removing $client..."
 }
 
-remove_client() {
+remove_client_wg() {
 	# The following is the right way to avoid disrupting other active connections:
 	# Remove from the live interface
 	wg set wg0 peer "$(sed -n "/^# BEGIN_PEER $client$/,\$p" "$WG_CONF" | grep -m 1 PublicKey | cut -d " " -f 3)" remove
@@ -997,12 +1104,16 @@ print_client_conf() {
 }
 
 confirm_remove_wg() {
-	echo
-	read -rp "Confirm WireGuard removal? [y/N]: " remove
-	until [[ "$remove" =~ ^[yYnN]*$ ]]; do
-		echo "$remove: invalid selection."
+	if [ "$assume_yes" != 1 ]; then
+		echo
 		read -rp "Confirm WireGuard removal? [y/N]: " remove
-	done
+		until [[ "$remove" =~ ^[yYnN]*$ ]]; do
+			echo "$remove: invalid selection."
+			read -rp "Confirm WireGuard removal? [y/N]: " remove
+		done
+	else
+		remove=y
+	fi
 }
 
 print_remove_wg() {
@@ -1054,9 +1165,82 @@ check_container
 WG_CONF="/etc/wireguard/wg0.conf"
 
 auto=0
+assume_yes=0
+add_client=0
+list_clients=0
+remove_client=0
+show_client_qr=0
+remove_wg=0
+dns1=""
+dns2=""
+
+parse_args "$@"
+check_args
+
+if [ "$add_client" = 1 ]; then
+	show_header
+	new_client add_client
+	update_wg_conf
+	echo
+	show_client_qr_code
+	print_client_added
+	exit 0
+fi
+
+if [ "$list_clients" = 1 ]; then
+	show_header
+	print_check_clients
+	check_clients
+	echo
+	show_clients
+	print_client_total
+	exit 0
+fi
+
+if [ "$remove_client" = 1 ]; then
+	show_header
+	confirm_remove_client
+	if [[ "$remove" =~ ^[yY]$ ]]; then
+		print_remove_client
+		remove_client_wg
+		print_client_removed
+		exit 0
+	else
+		print_client_removal_aborted
+		exit 1
+	fi
+fi
+
+if [ "$show_client_qr" = 1 ]; then
+	show_header
+	echo
+	get_export_dir
+	check_client_conf
+	show_client_qr_code
+	print_client_conf
+	exit 0
+fi
+
+if [ "$remove_wg" = 1 ]; then
+	show_header
+	confirm_remove_wg
+	if [[ "$remove" =~ ^[yY]$ ]]; then
+		print_remove_wg
+		remove_firewall_rules
+		disable_wg_service
+		remove_sysctl_rules
+		remove_rclocal_rules
+		remove_pkgs
+		print_wg_removed
+		exit 0
+	else
+		print_wg_removal_aborted
+		exit 1
+	fi
+fi
+
 if [[ ! -e "$WG_CONF" ]]; then
 	check_nftables
-	parse_args "$@"
 	install_wget
 	install_iproute
 	show_welcome
@@ -1100,7 +1284,7 @@ else
 			echo
 			show_client_qr_code
 			print_client_added
-			exit
+			exit 0
 		;;
 		2)
 			print_check_clients
@@ -1108,7 +1292,7 @@ else
 			echo
 			show_clients
 			print_client_total
-			exit
+			exit 0
 		;;
 		3)
 			check_clients
@@ -1116,12 +1300,13 @@ else
 			confirm_remove_client
 			if [[ "$remove" =~ ^[yY]$ ]]; then
 				print_remove_client
-				remove_client
+				remove_client_wg
 				print_client_removed
+				exit 0
 			else
 				print_client_removal_aborted
+				exit 1
 			fi
-			exit
 		;;
 		4)
 			check_clients
@@ -1131,7 +1316,7 @@ else
 			check_client_conf
 			show_client_qr_code
 			print_client_conf
-			exit
+			exit 0
 		;;
 		5)
 			confirm_remove_wg
@@ -1143,13 +1328,14 @@ else
 				remove_rclocal_rules
 				remove_pkgs
 				print_wg_removed
+				exit 0
 			else
 				print_wg_removal_aborted
+				exit 1
 			fi
-			exit
 		;;
 		6)
-			exit
+			exit 0
 		;;
 	esac
 fi
