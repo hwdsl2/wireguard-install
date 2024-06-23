@@ -938,7 +938,7 @@ start_wg_service() {
 }
 
 show_client_qr_code() {
-	qrencode -t UTF8 < "$export_dir$client".conf
+	qrencode -t ANSI256UTF8 < "$export_dir$client".conf
 	echo -e '\xE2\x86\x91 That is a QR code containing the client configuration.'
 }
 
