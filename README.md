@@ -28,6 +28,8 @@ First, download the script on your Linux server\*:
 wget -O wireguard.sh https://get.vpnsetup.net/wg
 ```
 
+\* A cloud server, virtual private server (VPS) or dedicated server.
+
 **Option 1:** Auto install WireGuard using default options.
 
 ```bash
@@ -107,8 +109,29 @@ ANSWERS
 
 **Note:** The install options may change in future versions of the script.
 </details>
+<details>
+<summary>
+View usage information for the WireGuard script.
+</summary>
 
-\* A cloud server, virtual private server (VPS) or dedicated server.
+```
+Usage: bash wireguard.sh [options]
+
+Options:
+  --auto                        auto install WireGuard using default options
+  --addclient [client name]     add a new client
+  --dns1 [DNS server IP]        primary DNS server for new client (optional, defaults to Google Public DNS)
+  --dns2 [DNS server IP]        secondary DNS server for new client (optional)
+  --listclients                 list the names of existing clients
+  --removeclient [client name]  remove an existing client
+  --showclientqr [client name]  show QR code for an existing client
+  --uninstall                   remove WireGuard and delete all configuration
+  -y, --yes                     assume "yes" as answer to prompts when removing a client or removing WireGuard
+  -h, --help                    show this help message and exit
+
+To customize install options, run this script without arguments.
+```
+</details>
 
 ## Next steps
 
@@ -139,6 +162,7 @@ List of enhancements over Nyr/wireguard-install.
 - Supports listing existing VPN clients
 - Supports showing QR code for a client
 - Supports custom DNS server(s) for VPN clients
+- Supports command-line options for managing VPN clients
 - Optimizes `sysctl` settings for improved VPN performance
 - Improved creation of client config files when using `sudo`
 

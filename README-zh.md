@@ -28,6 +28,8 @@
 wget -O wireguard.sh https://get.vpnsetup.net/wg
 ```
 
+\* 一个云服务器，虚拟专用服务器 (VPS) 或者专用服务器。
+
 **选项 1:** 使用默认选项自动安装 WireGuard。
 
 ```bash
@@ -107,8 +109,29 @@ ANSWERS
 
 **注：** 安装选项可能会在脚本的未来版本中发生变化。
 </details>
+<details>
+<summary>
+查看 WireGuard 脚本的使用信息。
+</summary>
 
-\* 一个云服务器，虚拟专用服务器 (VPS) 或者专用服务器。
+```
+Usage: bash wireguard.sh [options]
+
+Options:
+  --auto                        auto install WireGuard using default options
+  --addclient [client name]     add a new client
+  --dns1 [DNS server IP]        primary DNS server for new client (optional, defaults to Google Public DNS)
+  --dns2 [DNS server IP]        secondary DNS server for new client (optional)
+  --listclients                 list the names of existing clients
+  --removeclient [client name]  remove an existing client
+  --showclientqr [client name]  show QR code for an existing client
+  --uninstall                   remove WireGuard and delete all configuration
+  -y, --yes                     assume "yes" as answer to prompts when removing a client or removing WireGuard
+  -h, --help                    show this help message and exit
+
+To customize install options, run this script without arguments.
+```
+</details>
 
 ## 下一步
 
@@ -139,6 +162,7 @@ ANSWERS
 - 支持列出现有的 VPN 客户端
 - 支持显示客户端配置的二维码
 - 支持为 VPN 客户端自定义 DNS 服务器
+- 支持使用命令行参数管理 VPN 客户端
 - 优化 `sysctl` 设置以提高 VPN 性能
 - 使用 `sudo` 时改进了客户端配置文件的创建
 
