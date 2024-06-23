@@ -9,3 +9,27 @@
 要管理 WireGuard VPN 客户端，请再次运行安装脚本：`sudo bash wireguard.sh`。
 
 阅读 [:book: VPN book](https://ko-fi.com/post/Support-this-project-and-get-access-to-supporter-o-X8X5FVFZC) 以了解配置和管理 WireGuard VPN 客户端的分步说明。
+
+<details>
+<summary>
+查看 WireGuard 脚本的使用信息。
+</summary>
+
+```
+Usage: bash wireguard.sh [options]
+
+Options:
+  --auto                        auto install WireGuard using default options
+  --addclient [client name]     add a new client
+  --dns1 [DNS server IP]        primary DNS server for new client (optional, defaults to Google Public DNS)
+  --dns2 [DNS server IP]        secondary DNS server for new client (optional)
+  --listclients                 list the names of existing clients
+  --removeclient [client name]  remove an existing client
+  --showclientqr [client name]  show QR code for an existing client
+  --uninstall                   remove WireGuard and delete all configuration
+  -y, --yes                     assume "yes" as answer to prompts when removing a client or removing WireGuard
+  -h, --help                    show this help message and exit
+
+To customize install options, run this script without arguments.
+```
+</details>
