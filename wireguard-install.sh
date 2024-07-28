@@ -128,6 +128,22 @@ parse_args() {
 				remove_wg=1
 				shift
 				;;
+			--serveraddr)
+				server_addr_set=1
+				server_addr="$2"
+				shift
+				shift
+				;;
+			--port)
+				server_port="$2"
+				shift
+				shift
+				;;
+			--clientname)
+				first_client_name="$2"
+				shift
+				shift
+				;;
 			--dns1)
 				dns1="$2"
 				shift
@@ -153,10 +169,8 @@ parse_args() {
 }
 
 check_args() {
-	if [ "$auto" = 1 ] && [ -e "$WG_CONF" ]; then
-		echo "Error: Invalid parameter '--auto'. WireGuard is already set up on this server." >&2
-		echo "       To manage WireGuard clients, re-run this script without '--auto'." >&2
-		exit 1
+	if [ "$auto" != 0 ] && [ -e "$WG_CONF" ]; then
+		show_usage "Invalid parameter '--auto'. WireGuard is already set up on this server."
 	fi
 	if [ "$((add_client + list_clients + remove_client + show_client_qr))" -gt 1 ]; then
 		show_usage "Invalid parameters. Specify only one of '--addclient', '--listclients', '--removeclient' or '--showclientqr'."
@@ -173,6 +187,16 @@ check_args() {
 		[ "$show_client_qr" = 1 ] && exiterr "You must first set up WireGuard before showing QR code for a client."
 		[ "$remove_wg" = 1 ] && exiterr "Cannot remove WireGuard because it has not been set up on this server."
 	fi
+	if [ "$((add_client + remove_client + show_client_qr))" = 1 ] && [ -n "$first_client_name" ]; then
+		show_usage "Invalid parameters. '--clientname' can only be specified when installing WireGuard."
+	fi
+	if [ -n "$server_addr" ] || [ -n "$server_port" ] || [ -n "$first_client_name" ]; then
+			if [ -e "$WG_CONF" ]; then
+				show_usage "Invalid parameters. WireGuard is already set up on this server."
+			elif [ "$auto" = 0 ]; then
+				show_usage "Invalid parameters. You must specify '--auto' when using these parameters."
+			fi
+	fi
 	if [ "$add_client" = 1 ]; then
 		set_client_name
 		if [ -z "$client" ]; then
@@ -180,26 +204,46 @@ check_args() {
 		elif grep -q "^# BEGIN_PEER $client$" "$WG_CONF"; then
 			exiterr "$client: invalid name. Client already exists."
 		fi
-		if { [ -n "$dns1" ] && ! check_ip "$dns1"; } \
-			|| { [ -n "$dns2" ] && ! check_ip "$dns2"; }; then
-			exiterr "Invalid DNS server(s)."
-		fi
-		if [ -z "$dns1" ] && [ -n "$dns2" ]; then
-			exiterr "Invalid DNS server. --dns2 cannot be specified without --dns1."
-		fi
-		if [ -n "$dns1" ] && [ -n "$dns2" ]; then
-			dns="$dns1, $dns2"
-		elif [ -n "$dns1" ]; then
-			dns="$dns1"
-		else
-			dns="8.8.8.8, 8.8.4.4"
-		fi
 	fi
 	if [ "$remove_client" = 1 ] || [ "$show_client_qr" = 1 ]; then
 		set_client_name
 		if [ -z "$client" ] || ! grep -q "^# BEGIN_PEER $client$" "$WG_CONF"; then
 			exiterr "Invalid client name, or client does not exist."
 		fi
+	fi
+	if [ -n "$server_addr" ] && ! check_dns_name "$server_addr"; then
+		exiterr "Invalid server address. Must be a fully qualified domain name (FQDN)."
+	fi
+	if [ -n "$first_client_name" ]; then
+		unsanitized_client="$first_client_name"
+		set_client_name
+		if [ -z "$client" ]; then
+			exiterr "Invalid client name. Use one word only, no special characters except '-' and '_'."
+		fi
+	fi
+	if [ -n "$server_port" ]; then
+		if [[ ! "$server_port" =~ ^[0-9]+$ || "$server_port" -gt 65535 ]]; then
+			exiterr "Invalid port. Must be an integer between 1 and 65535."
+		fi
+	fi
+	if [ -n "$dns1" ]; then
+		if [ -e "$WG_CONF" ] && [ "$add_client" = 0 ]; then
+			show_usage "Invalid parameters. Custom DNS server(s) can only be specified when installing WireGuard or adding a client."
+		fi
+	fi
+	if { [ -n "$dns1" ] && ! check_ip "$dns1"; } \
+		|| { [ -n "$dns2" ] && ! check_ip "$dns2"; }; then
+		exiterr "Invalid DNS server(s)."
+	fi
+	if [ -z "$dns1" ] && [ -n "$dns2" ]; then
+		show_usage "Invalid DNS server. --dns2 cannot be specified without --dns1."
+	fi
+	if [ -n "$dns1" ] && [ -n "$dns2" ]; then
+		dns="$dns1, $dns2"
+	elif [ -n "$dns1" ]; then
+		dns="$dns1"
+	else
+		dns="8.8.8.8, 8.8.4.4"
 	fi
 }
 
@@ -291,9 +335,9 @@ cat 1>&2 <<EOF
 Usage: bash $0 [options]
 
 Options:
-  --auto                        auto install WireGuard using default options
+
   --addclient [client name]     add a new client
-  --dns1 [DNS server IP]        primary DNS server for new client (optional, defaults to Google Public DNS)
+  --dns1 [DNS server IP]        primary DNS server for new client (optional, default: Google Public DNS)
   --dns2 [DNS server IP]        secondary DNS server for new client (optional)
   --listclients                 list the names of existing clients
   --removeclient [client name]  remove an existing client
@@ -302,7 +346,17 @@ Options:
   -y, --yes                     assume "yes" as answer to prompts when removing a client or removing WireGuard
   -h, --help                    show this help message and exit
 
-To customize install options, run this script without arguments.
+Install options (optional):
+
+  --auto                        auto install WireGuard using default or custom options
+  --serveraddr [DNS name]       server address, must be a fully qualified domain name (FQDN).
+                                If not specified, the server's IPv4 address will be used.
+  --port [number]               port for WireGuard (1-65535, default: 51820)
+  --clientname [client name]    name for the first WireGuard client (default: client)
+  --dns1 [DNS server IP]        primary DNS server for first client (default: Google Public DNS)
+  --dns2 [DNS server IP]        secondary DNS server for first client
+
+To customize options, you may also run this script without arguments.
 EOF
 	exit 1
 }
@@ -314,9 +368,22 @@ show_welcome() {
 		echo 'You can use the default options and just press enter if you are OK with them.'
 	else
 		show_header
+		op_text=default
+		if [ -n "$server_addr" ] || [ -n "$server_port" ] \
+			|| [ -n "$first_client_name" ] || [ -n "$dns1" ]; then
+			op_text=custom
+		fi
 		echo
-		echo 'Starting WireGuard setup using default options.'
+		echo "Starting WireGuard setup using $op_text options."
 	fi
+}
+
+show_dns_name_note() {
+cat <<EOF
+
+Note: Make sure this DNS name '$server_addr'
+      resolves to the IPv4 address of this server.
+EOF
 }
 
 enter_server_address() {
@@ -340,8 +407,7 @@ enter_server_address() {
 			read -rp "Enter the DNS name of this VPN server: " server_addr
 		done
 		ip="$server_addr"
-		echo
-		echo "Note: Make sure this DNS name resolves to the IPv4 address of this server."
+		show_dns_name_note
 	else
 		detect_ip
 		check_nat_ip
@@ -430,11 +496,24 @@ check_nat_ip() {
 show_config() {
 	if [ "$auto" != 0 ]; then
 		echo
-		printf '%s' "Server IP: "
-		[ -n "$public_ip" ] && printf '%s\n' "$public_ip" || printf '%s\n' "$ip"
-		echo "Port: UDP/51820"
-		echo "Client name: client"
-		echo "Client DNS: Google Public DNS"
+		if [ -n "$server_addr" ]; then
+			echo "Server address: $server_addr"
+		else
+			printf '%s' "Server IP: "
+			[ -n "$public_ip" ] && printf '%s\n' "$public_ip" || printf '%s\n' "$ip"
+		fi
+		[ -n "$server_port" ] && port_text="$server_port" || port_text=51820
+		[ -n "$first_client_name" ] && client_text="$client" || client_text=client
+		if [ -n "$dns1" ] && [ -n "$dns2" ]; then
+			dns_text="$dns1, $dns2"
+		elif [ -n "$dns1" ]; then
+			dns_text="$dns1"
+		else
+			dns_text="Google Public DNS"
+		fi
+		echo "Port: UDP/$port_text"
+		echo "Client name: $client_text"
+		echo "Client DNS: $dns_text"
 	fi
 }
 
@@ -456,7 +535,7 @@ select_port() {
 		done
 		[[ -z "$port" ]] && port=51820
 	else
-		port=51820
+		[ -n "$server_port" ] && port="$server_port" || port=51820
 	fi
 }
 
@@ -481,7 +560,12 @@ enter_first_client_name() {
 		set_client_name
 		[[ -z "$client" ]] && client=client
 	else
-		client=client
+		if [ -n "$first_client_name" ]; then
+			unsanitized_client="$first_client_name"
+			set_client_name
+		else
+			client=client
+		fi
 	fi
 }
 
@@ -1171,6 +1255,14 @@ list_clients=0
 remove_client=0
 show_client_qr=0
 remove_wg=0
+server_addr_set=0
+public_ip=""
+server_addr=""
+server_port=""
+first_client_name=""
+unsanitized_client=""
+client=""
+dns=""
 dns1=""
 dns2=""
 
@@ -1244,18 +1336,23 @@ if [[ ! -e "$WG_CONF" ]]; then
 	install_wget
 	install_iproute
 	show_welcome
-	public_ip=""
 	if [ "$auto" = 0 ]; then
 		enter_server_address
 	else
-		detect_ip
-		check_nat_ip
+		if [ -n "$server_addr" ]; then
+			ip="$server_addr"
+		else
+			detect_ip
+			check_nat_ip
+		fi
 	fi
 	show_config
 	detect_ipv6
 	select_port
 	enter_first_client_name
-	select_dns
+	if [ "$auto" = 0 ]; then
+		select_dns
+	fi
 	show_setup_ready
 	check_firewall
 	confirm_setup
@@ -1271,6 +1368,9 @@ if [[ ! -e "$WG_CONF" ]]; then
 	start_wg_service
 	echo
 	show_client_qr_code
+	if [ "$auto" != 0 ] && [ "$server_addr_set" = 1 ]; then
+		show_dns_name_note
+	fi
 	finish_setup
 else
 	show_header
