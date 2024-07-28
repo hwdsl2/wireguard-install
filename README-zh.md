@@ -85,7 +85,9 @@ https://gitlab.com/hwdsl2/wireguard-install/-/raw/master/wireguard-install.sh
 高级：使用自定义选项自动安装。
 </summary>
 
-高级用户可以使用自定义选项自动安装 WireGuard，方法是提供一个 Bash "here document" 作为安装脚本的输入。此方法还可用于在安装后提供输入以管理用户。
+高级用户可以使用自定义选项自动安装 WireGuard，方法是在运行脚本时指定命令行参数。有关更多信息，请参见下一节，查看 WireGuard 脚本的使用信息。
+
+或者，你也可以提供一个 Bash "here document" 作为安装脚本的输入。此方法还可用于在安装后提供输入以管理用户。
 
 首先，使用自定义选项以交互方式安装 WireGuard，并写下你对脚本的所有输入值。
 
@@ -118,9 +120,9 @@ ANSWERS
 Usage: bash wireguard.sh [options]
 
 Options:
-  --auto                        auto install WireGuard using default options
+
   --addclient [client name]     add a new client
-  --dns1 [DNS server IP]        primary DNS server for new client (optional, defaults to Google Public DNS)
+  --dns1 [DNS server IP]        primary DNS server for new client (optional, default: Google Public DNS)
   --dns2 [DNS server IP]        secondary DNS server for new client (optional)
   --listclients                 list the names of existing clients
   --removeclient [client name]  remove an existing client
@@ -129,7 +131,17 @@ Options:
   -y, --yes                     assume "yes" as answer to prompts when removing a client or removing WireGuard
   -h, --help                    show this help message and exit
 
-To customize install options, run this script without arguments.
+Install options (optional):
+
+  --auto                        auto install WireGuard using default or custom options
+  --serveraddr [DNS name]       server address, must be a fully qualified domain name (FQDN).
+                                If not specified, the server's IPv4 address will be used.
+  --port [number]               port for WireGuard (1-65535, default: 51820)
+  --clientname [client name]    name for the first WireGuard client (default: client)
+  --dns1 [DNS server IP]        primary DNS server for first client (default: Google Public DNS)
+  --dns2 [DNS server IP]        secondary DNS server for first client
+
+To customize options, you may also run this script without arguments.
 ```
 </details>
 
@@ -156,7 +168,7 @@ To customize install options, run this script without arguments.
 
 - 改进了与 Setup IPsec VPN 的兼容性
 - 改进了脚本的可靠性，用户输入和输出
-- 支持使用默认选项自动安装
+- 支持使用默认或自定义选项自动安装
 - 支持使用域名作为服务器地址
 - 增加了对 openSUSE Linux 的支持
 - 支持列出现有的 VPN 客户端

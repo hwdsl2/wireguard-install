@@ -85,7 +85,9 @@ If you are unable to download, open [wireguard-install.sh](wireguard-install.sh)
 Advanced: Auto install using custom options.
 </summary>
 
-Advanced users can auto install WireGuard using custom options, by providing a Bash "here document" as input to the setup script. This method can also be used to provide input to manage users after install.
+Advanced users can auto install WireGuard using custom options, by specifying command-line options when running the script. For more details, see the next section "view usage information for the WireGuard script".
+
+Alternatively, you may provide a Bash "here document" as input to the setup script. This method can also be used to provide input to manage users after install.
 
 First, install WireGuard interactively using custom options, and write down all your inputs to the script.
 
@@ -118,9 +120,9 @@ View usage information for the WireGuard script.
 Usage: bash wireguard.sh [options]
 
 Options:
-  --auto                        auto install WireGuard using default options
+
   --addclient [client name]     add a new client
-  --dns1 [DNS server IP]        primary DNS server for new client (optional, defaults to Google Public DNS)
+  --dns1 [DNS server IP]        primary DNS server for new client (optional, default: Google Public DNS)
   --dns2 [DNS server IP]        secondary DNS server for new client (optional)
   --listclients                 list the names of existing clients
   --removeclient [client name]  remove an existing client
@@ -129,7 +131,17 @@ Options:
   -y, --yes                     assume "yes" as answer to prompts when removing a client or removing WireGuard
   -h, --help                    show this help message and exit
 
-To customize install options, run this script without arguments.
+Install options (optional):
+
+  --auto                        auto install WireGuard using default or custom options
+  --serveraddr [DNS name]       server address, must be a fully qualified domain name (FQDN).
+                                If not specified, the server's IPv4 address will be used.
+  --port [number]               port for WireGuard (1-65535, default: 51820)
+  --clientname [client name]    name for the first WireGuard client (default: client)
+  --dns1 [DNS server IP]        primary DNS server for first client (default: Google Public DNS)
+  --dns2 [DNS server IP]        secondary DNS server for first client
+
+To customize options, you may also run this script without arguments.
 ```
 </details>
 
@@ -156,7 +168,7 @@ List of enhancements over Nyr/wireguard-install.
 
 - Improved compatibility with Setup IPsec VPN
 - Improved script reliability, user input and output
-- Supports auto install using default options
+- Supports auto install using default or custom options
 - Supports using a DNS name as server address
 - Added support for openSUSE Linux
 - Supports listing existing VPN clients
