@@ -77,8 +77,8 @@ This version of Ubuntu is too old and unsupported."
 		exiterr "Debian 11 or higher is required to use this installer.
 This version of Debian is too old and unsupported."
 	fi
-	if [[ "$os" == "centos" && "$os_version" -lt 7 ]]; then
-		exiterr "CentOS 7 or higher is required to use this installer.
+	if [[ "$os" == "centos" && "$os_version" -lt 8 ]]; then
+		exiterr "CentOS 8 or higher is required to use this installer.
 This version of CentOS is too old and unsupported."
 	fi
 }
@@ -648,14 +648,6 @@ install_pkgs() {
 			yum -y -q install epel-release elrepo-release >/dev/null
 			yum -y -q --nobest install kmod-wireguard >/dev/null 2>&1
 			yum -y -q install wireguard-tools qrencode $firewall >/dev/null 2>&1
-		) || exiterr3
-		mkdir -p /etc/wireguard/
-	elif [[ "$os" == "centos" && "$os_version" -eq 7 ]]; then
-		(
-			set -x
-			yum -y -q install epel-release https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm >/dev/null
-			yum -y -q install yum-plugin-elrepo >/dev/null 2>&1
-			yum -y -q install kmod-wireguard wireguard-tools qrencode $firewall >/dev/null 2>&1
 		) || exiterr3
 		mkdir -p /etc/wireguard/
 	elif [[ "$os" == "fedora" ]]; then
