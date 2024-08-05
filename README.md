@@ -121,25 +121,24 @@ Usage: bash wireguard.sh [options]
 
 Options:
 
-  --addclient [client name]     add a new client
-  --dns1 [DNS server IP]        primary DNS server for new client (optional, default: Google Public DNS)
-  --dns2 [DNS server IP]        secondary DNS server for new client (optional)
-  --listclients                 list the names of existing clients
-  --removeclient [client name]  remove an existing client
-  --showclientqr [client name]  show QR code for an existing client
-  --uninstall                   remove WireGuard and delete all configuration
-  -y, --yes                     assume "yes" as answer to prompts when removing a client or removing WireGuard
-  -h, --help                    show this help message and exit
+  --addclient [client name]      add a new client
+  --dns1 [DNS server IP]         primary DNS server for new client (optional, default: Google Public DNS)
+  --dns2 [DNS server IP]         secondary DNS server for new client (optional)
+  --listclients                  list the names of existing clients
+  --removeclient [client name]   remove an existing client
+  --showclientqr [client name]   show QR code for an existing client
+  --uninstall                    remove WireGuard and delete all configuration
+  -y, --yes                      assume "yes" as answer to prompts when removing a client or removing WireGuard
+  -h, --help                     show this help message and exit
 
 Install options (optional):
 
-  --auto                        auto install WireGuard using default or custom options
-  --serveraddr [DNS name]       server address, must be a fully qualified domain name (FQDN).
-                                If not specified, the server's IPv4 address will be used.
-  --port [number]               port for WireGuard (1-65535, default: 51820)
-  --clientname [client name]    name for the first WireGuard client (default: client)
-  --dns1 [DNS server IP]        primary DNS server for first client (default: Google Public DNS)
-  --dns2 [DNS server IP]        secondary DNS server for first client
+  --auto                         auto install WireGuard using default or custom options
+  --serveraddr [DNS name or IP]  server address, must be a fully qualified domain name (FQDN) or an IPv4 address.
+  --port [number]                port for WireGuard (1-65535, default: 51820)
+  --clientname [client name]     name for the first WireGuard client (default: client)
+  --dns1 [DNS server IP]         primary DNS server for first client (default: Google Public DNS)
+  --dns2 [DNS server IP]         secondary DNS server for first client
 
 To customize options, you may also run this script without arguments.
 ```
