@@ -21,6 +21,11 @@ check_ip() {
 	printf '%s' "$1" | tr -d '\n' | grep -Eq "$IP_REGEX"
 }
 
+check_pvt_ip() {
+	IPP_REGEX='^(10|127|172\.(1[6-9]|2[0-9]|3[0-1])|192\.168|169\.254)\.'
+	printf '%s' "$1" | tr -d '\n' | grep -Eq "$IPP_REGEX"
+}
+
 check_dns_name() {
 	FQDN_REGEX='^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$'
 	printf '%s' "$1" | tr -d '\n' | grep -Eq "$FQDN_REGEX"
@@ -129,7 +134,6 @@ parse_args() {
 				shift
 				;;
 			--serveraddr)
-				server_addr_set=1
 				server_addr="$2"
 				shift
 				shift
@@ -211,8 +215,8 @@ check_args() {
 			exiterr "Invalid client name, or client does not exist."
 		fi
 	fi
-	if [ -n "$server_addr" ] && ! check_dns_name "$server_addr"; then
-		exiterr "Invalid server address. Must be a fully qualified domain name (FQDN)."
+	if [ -n "$server_addr" ] && { ! check_dns_name "$server_addr" && ! check_ip "$server_addr"; }; then
+		exiterr "Invalid server address. Must be a fully qualified domain name (FQDN) or an IPv4 address."
 	fi
 	if [ -n "$first_client_name" ]; then
 		unsanitized_client="$first_client_name"
@@ -336,25 +340,24 @@ Usage: bash $0 [options]
 
 Options:
 
-  --addclient [client name]     add a new client
-  --dns1 [DNS server IP]        primary DNS server for new client (optional, default: Google Public DNS)
-  --dns2 [DNS server IP]        secondary DNS server for new client (optional)
-  --listclients                 list the names of existing clients
-  --removeclient [client name]  remove an existing client
-  --showclientqr [client name]  show QR code for an existing client
-  --uninstall                   remove WireGuard and delete all configuration
-  -y, --yes                     assume "yes" as answer to prompts when removing a client or removing WireGuard
-  -h, --help                    show this help message and exit
+  --addclient [client name]      add a new client
+  --dns1 [DNS server IP]         primary DNS server for new client (optional, default: Google Public DNS)
+  --dns2 [DNS server IP]         secondary DNS server for new client (optional)
+  --listclients                  list the names of existing clients
+  --removeclient [client name]   remove an existing client
+  --showclientqr [client name]   show QR code for an existing client
+  --uninstall                    remove WireGuard and delete all configuration
+  -y, --yes                      assume "yes" as answer to prompts when removing a client or removing WireGuard
+  -h, --help                     show this help message and exit
 
 Install options (optional):
 
-  --auto                        auto install WireGuard using default or custom options
-  --serveraddr [DNS name]       server address, must be a fully qualified domain name (FQDN).
-                                If not specified, the server's IPv4 address will be used.
-  --port [number]               port for WireGuard (1-65535, default: 51820)
-  --clientname [client name]    name for the first WireGuard client (default: client)
-  --dns1 [DNS server IP]        primary DNS server for first client (default: Google Public DNS)
-  --dns2 [DNS server IP]        secondary DNS server for first client
+  --auto                         auto install WireGuard using default or custom options
+  --serveraddr [DNS name or IP]  server address, must be a fully qualified domain name (FQDN) or an IPv4 address.
+  --port [number]                port for WireGuard (1-65535, default: 51820)
+  --clientname [client name]     name for the first WireGuard client (default: client)
+  --dns1 [DNS server IP]         primary DNS server for first client (default: Google Public DNS)
+  --dns2 [DNS server IP]         secondary DNS server for first client
 
 To customize options, you may also run this script without arguments.
 EOF
@@ -381,7 +384,7 @@ show_welcome() {
 show_dns_name_note() {
 cat <<EOF
 
-Note: Make sure this DNS name '$server_addr'
+Note: Make sure this DNS name '$1'
       resolves to the IPv4 address of this server.
 EOF
 }
@@ -401,13 +404,13 @@ enter_server_address() {
 			;;
 	esac
 	if [ "$use_dns_name" = 1 ]; then
-		read -rp "Enter the DNS name of this VPN server: " server_addr
-		until check_dns_name "$server_addr"; do
+		read -rp "Enter the DNS name of this VPN server: " server_addr_i
+		until check_dns_name "$server_addr_i"; do
 			echo "Invalid DNS name. You must enter a fully qualified domain name (FQDN)."
-			read -rp "Enter the DNS name of this VPN server: " server_addr
+			read -rp "Enter the DNS name of this VPN server: " server_addr_i
 		done
-		ip="$server_addr"
-		show_dns_name_note
+		ip="$server_addr_i"
+		show_dns_name_note "$ip"
 	else
 		detect_ip
 		check_nat_ip
@@ -471,7 +474,7 @@ detect_ip() {
 
 check_nat_ip() {
 	# If $ip is a private IP address, the server must be behind NAT
-	if printf '%s' "$ip" | grep -qE '^(10|127|172\.(1[6-9]|2[0-9]|3[0-1])|192\.168|169\.254)\.'; then
+	if check_pvt_ip "$ip"; then
 		find_public_ip
 		if ! check_ip "$get_public_ip"; then
 			if [ "$auto" = 0 ]; then
@@ -1247,7 +1250,6 @@ list_clients=0
 remove_client=0
 show_client_qr=0
 remove_wg=0
-server_addr_set=0
 public_ip=""
 server_addr=""
 server_port=""
@@ -1360,8 +1362,8 @@ if [[ ! -e "$WG_CONF" ]]; then
 	start_wg_service
 	echo
 	show_client_qr_code
-	if [ "$auto" != 0 ] && [ "$server_addr_set" = 1 ]; then
-		show_dns_name_note
+	if [ "$auto" != 0 ] && check_dns_name "$server_addr"; then
+		show_dns_name_note "$server_addr"
 	fi
 	finish_setup
 else
