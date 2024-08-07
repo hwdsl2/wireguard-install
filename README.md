@@ -134,7 +134,7 @@ Options:
 Install options (optional):
 
   --auto                         auto install WireGuard using default or custom options
-  --serveraddr [DNS name or IP]  server address, must be a fully qualified domain name (FQDN) or an IPv4 address.
+  --serveraddr [DNS name or IP]  server address, must be a fully qualified domain name (FQDN) or an IPv4 address
   --port [number]                port for WireGuard (1-65535, default: 51820)
   --clientname [client name]     name for the first WireGuard client (default: client)
   --dns1 [DNS server IP]         primary DNS server for first client (default: Google Public DNS)
