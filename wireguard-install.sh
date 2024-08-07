@@ -185,10 +185,11 @@ check_args() {
 		fi
 	fi
 	if [ ! -e "$WG_CONF" ]; then
-		[ "$add_client" = 1 ] && exiterr "You must first set up WireGuard before adding a client."
-		[ "$list_clients" = 1 ] && exiterr "You must first set up WireGuard before listing clients."
-		[ "$remove_client" = 1 ] && exiterr "You must first set up WireGuard before removing a client."
-		[ "$show_client_qr" = 1 ] && exiterr "You must first set up WireGuard before showing QR code for a client."
+		st_text="You must first set up WireGuard before"
+		[ "$add_client" = 1 ] && exiterr "$st_text adding a client."
+		[ "$list_clients" = 1 ] && exiterr "$st_text listing clients."
+		[ "$remove_client" = 1 ] && exiterr "$st_text removing a client."
+		[ "$show_client_qr" = 1 ] && exiterr "$st_text showing QR code for a client."
 		[ "$remove_wg" = 1 ] && exiterr "Cannot remove WireGuard because it has not been set up on this server."
 	fi
 	if [ "$((add_client + remove_client + show_client_qr))" = 1 ] && [ -n "$first_client_name" ]; then
@@ -353,7 +354,7 @@ Options:
 Install options (optional):
 
   --auto                         auto install WireGuard using default or custom options
-  --serveraddr [DNS name or IP]  server address, must be a fully qualified domain name (FQDN) or an IPv4 address.
+  --serveraddr [DNS name or IP]  server address, must be a fully qualified domain name (FQDN) or an IPv4 address
   --port [number]                port for WireGuard (1-65535, default: 51820)
   --clientname [client name]     name for the first WireGuard client (default: client)
   --dns1 [DNS server IP]         primary DNS server for first client (default: Google Public DNS)
