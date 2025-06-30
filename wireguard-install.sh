@@ -5,7 +5,7 @@
 # Based on the work of Nyr and contributors at:
 # https://github.com/Nyr/wireguard-install
 #
-# Copyright (c) 2022-2024 Lin Song <linsongui@gmail.com>
+# Copyright (c) 2022-2025 Lin Song <linsongui@gmail.com>
 # Copyright (c) 2020-2023 Nyr
 #
 # Released under the MIT License, see the accompanying file LICENSE.txt
@@ -324,7 +324,7 @@ EOF
 show_header3() {
 cat <<'EOF'
 
-Copyright (c) 2022-2024 Lin Song
+Copyright (c) 2022-2025 Lin Song
 Copyright (c) 2020-2023 Nyr
 EOF
 }
@@ -639,7 +639,7 @@ install_pkgs() {
 			apt-get -yqq update || apt-get -yqq update
 			apt-get -yqq install wireguard qrencode $firewall >/dev/null
 		) || exiterr2
-	elif [[ "$os" == "centos" && "$os_version" -eq 9 ]]; then
+	elif [[ "$os" == "centos" && "$os_version" -ge 9 ]]; then
 		(
 			set -x
 			yum -y -q install epel-release >/dev/null
@@ -690,13 +690,13 @@ remove_pkgs() {
 			rm -rf /etc/wireguard/
 			apt-get remove --purge -y wireguard wireguard-tools >/dev/null
 		)
-	elif [[ "$os" == "centos" && "$os_version" -eq 9 ]]; then
+	elif [[ "$os" == "centos" && "$os_version" -ge 9 ]]; then
 		(
 			set -x
 			yum -y -q remove wireguard-tools >/dev/null
 			rm -rf /etc/wireguard/
 		)
-	elif [[ "$os" == "centos" && "$os_version" -le 8 ]]; then
+	elif [[ "$os" == "centos" && "$os_version" -eq 8 ]]; then
 		(
 			set -x
 			yum -y -q remove kmod-wireguard wireguard-tools >/dev/null
