@@ -10,9 +10,7 @@
 
 另见：[OpenVPN](https://github.com/hwdsl2/openvpn-install/blob/master/README-zh.md) 和 [IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/README-zh.md) 服务器一键安装脚本。
 
----
-#### [&raquo; :book: 限时免费电子书：Privacy Tools in the Age of AI](https://books2read.com/privacy?store=amazon)
----
+**[&raquo; :book: Book: Privacy Tools in the Age of AI](https://books2read.com/privacy?store=amazon) &nbsp;[搭建自己的 VPN 服务器分步指南](docs/vpn-book-zh.md)**
 
 ## 功能特性
 
