@@ -61,6 +61,9 @@ check_os() {
 	elif [[ -e /etc/almalinux-release || -e /etc/rocky-release || -e /etc/centos-release ]]; then
 		os="centos"
 		os_version=$(grep -shoE '[0-9]+' /etc/almalinux-release /etc/rocky-release /etc/centos-release | head -1)
+	elif [[ -e /etc/redhat-release ]]; then
+		os="rhel"
+		os_version=$(grep -oE '[0-9]+' /etc/redhat-release | head -1)
 	elif [[ -e /etc/fedora-release ]]; then
 		os="fedora"
 		os_version=$(grep -oE '[0-9]+' /etc/fedora-release | head -1)
@@ -69,7 +72,7 @@ check_os() {
 		os_version=$(tail -1 /etc/SUSE-brand | grep -oE '[0-9\\.]+')
 	else
 		exiterr "This installer seems to be running on an unsupported distribution.
-Supported distros are Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS, Fedora and openSUSE."
+Supported distros are Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS, RHEL, Fedora and openSUSE."
 	fi
 }
 
@@ -86,11 +89,27 @@ This version of Debian is too old and unsupported."
 		exiterr "CentOS 8 or higher is required to use this installer.
 This version of CentOS is too old and unsupported."
 	fi
+	if [[ "$os" == "rhel" && "$os_version" -lt 8 ]]; then
+		exiterr "RHEL 8 or higher is required to use this installer.
+This version of RHEL is too old and unsupported."
+	fi
 }
 
 check_container() {
 	if systemd-detect-virt -cq 2>/dev/null; then
 		exiterr "This system is running inside a container, which is not supported by this installer."
+	fi
+}
+
+check_secure_boot() {
+	if [[ "$os" == "rhel" && "$os_version" -eq 8 ]] || [[ "$os" == "centos" && "$os_version" -eq 8 ]]; then
+		if mokutil --sb-state 2>/dev/null | grep -q "SecureBoot enabled"; then
+			echo "Warning: Secure Boot is enabled."
+			echo "On RHEL/CentOS 8, the WireGuard kernel module is provided by ELRepo and is not signed by Red Hat."
+			echo "The module will likely fail to load unless you disable Secure Boot or enroll the ELRepo key."
+			echo "It is strongly recommended to disable Secure Boot before proceeding."
+			read -n1 -r -p "Press any key to continue..."
+		fi
 	fi
 }
 
@@ -253,7 +272,7 @@ check_args() {
 }
 
 check_nftables() {
-	if [ "$os" = "centos" ]; then
+	if [ "$os" = "centos" ] || [ "$os" = "rhel" ]; then
 		if grep -qs "hwdsl2 VPN script" /etc/sysconfig/nftables.conf \
 			|| systemctl is-active --quiet nftables 2>/dev/null; then
 			exiterr "This system has nftables enabled, which is not supported by this installer."
@@ -583,7 +602,7 @@ show_setup_ready() {
 check_firewall() {
 	# Install a firewall if firewalld or iptables are not already available
 	if ! systemctl is-active --quiet firewalld.service && ! hash iptables 2>/dev/null; then
-		if [[ "$os" == "centos" || "$os" == "fedora" ]]; then
+		if [[ "$os" == "centos" || "$os" == "fedora" || "$os" == "rhel" ]]; then
 			firewall="firewalld"
 		elif [[ "$os" == "openSUSE" ]]; then
 			firewall="firewalld"
@@ -654,6 +673,22 @@ install_pkgs() {
 			yum -y -q install wireguard-tools qrencode $firewall >/dev/null 2>&1
 		) || exiterr3
 		mkdir -p /etc/wireguard/
+	elif [[ "$os" == "rhel" && "$os_version" -ge 9 ]]; then
+		(
+			set -x
+			yum -y -q install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm >/dev/null
+			yum -y -q install wireguard-tools qrencode $firewall >/dev/null 2>&1
+		) || exiterr3
+		mkdir -p /etc/wireguard/
+	elif [[ "$os" == "rhel" && "$os_version" -eq 8 ]]; then
+		(
+			set -x
+			yum -y -q install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm >/dev/null
+			yum -y -q install https://www.elrepo.org/elrepo-release-8.el8.elrepo.noarch.rpm >/dev/null
+			yum -y -q --nobest install kmod-wireguard >/dev/null 2>&1
+			yum -y -q install wireguard-tools qrencode $firewall >/dev/null 2>&1
+		) || exiterr3
+		mkdir -p /etc/wireguard/
 	elif [[ "$os" == "fedora" ]]; then
 		(
 			set -x
@@ -697,6 +732,18 @@ remove_pkgs() {
 			rm -rf /etc/wireguard/
 		)
 	elif [[ "$os" == "centos" && "$os_version" -eq 8 ]]; then
+		(
+			set -x
+			yum -y -q remove kmod-wireguard wireguard-tools >/dev/null
+			rm -rf /etc/wireguard/
+		)
+	elif [[ "$os" == "rhel" && "$os_version" -ge 9 ]]; then
+		(
+			set -x
+			yum -y -q remove wireguard-tools >/dev/null
+			rm -rf /etc/wireguard/
+		)
+	elif [[ "$os" == "rhel" && "$os_version" -eq 8 ]]; then
 		(
 			set -x
 			yum -y -q remove kmod-wireguard wireguard-tools >/dev/null
@@ -970,7 +1017,11 @@ update_sysctl() {
 	fi
 	# Optimize sysctl settings such as TCP buffer sizes
 	base_url="https://github.com/hwdsl2/vpn-extras/releases/download/v1.0.0"
-	conf_url="$base_url/sysctl-wg-$os"
+	if [ "$os" = "rhel" ]; then
+		conf_url="$base_url/sysctl-wg-centos"
+	else
+		conf_url="$base_url/sysctl-wg-$os"
+	fi
 	[ "$auto" != 0 ] && conf_url="${conf_url}-auto"
 	wget -t 3 -T 30 -q -O "$conf_opt" "$conf_url" 2>/dev/null \
 		|| curl -m 30 -fsL "$conf_url" -o "$conf_opt" 2>/dev/null \
@@ -1012,6 +1063,10 @@ EOF
 
 start_wg_service() {
 	# Enable and start the wg-quick service
+	if ! modprobe -nq wireguard; then
+		echo "Warning: WireGuard kernel module not found. Skipping service start."
+		return
+	fi
 	(
 		set -x
 		systemctl enable --now wg-quick@wg0.service >/dev/null 2>&1
@@ -1032,6 +1087,9 @@ finish_setup() {
 		echo "Reboot the system to load the most recent kernel."
 	else
 		echo "Finished!"
+		if [[ "$os" == "centos" || "$os" == "rhel" || "$os" == "fedora" ]]; then
+			echo "It is recommended to reboot your system once setup is complete."
+		fi
 	fi
 	echo
 	echo "The client configuration is available in: $export_dir$client.conf"
@@ -1242,6 +1300,7 @@ check_kernel
 check_os
 check_os_ver
 check_container
+check_secure_boot
 
 WG_CONF="/etc/wireguard/wg0.conf"
 
