@@ -10,7 +10,7 @@ This script will let you set up your own VPN server in just a few minutes, even 
 
 See also: [OpenVPN](https://github.com/hwdsl2/openvpn-install) and [IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn) server auto setup scripts.
 
-**[&raquo; :book: Book: Privacy Tools in the Age of AI](https://books2read.com/privacy?store=amazon) &nbsp;[Build Your Own VPN Server](docs/vpn-book.md)**
+**[&raquo; :book: Book: Privacy Tools in the Age of AI](docs/vpn-book.md) &nbsp;[Build Your Own VPN Server](docs/vpn-book.md)**
 
 ## Features
 
