@@ -1,4 +1,4 @@
-[English](README.md) | [中文](README-zh.md) | [Video en Español](https://www.youtube.com/watch?v=99qtaJU2E2k)
+[English](README.md) | [简体中文](README-zh.md) | [繁體中文](README-zh-Hant.md) | [Video en Español](https://www.youtube.com/watch?v=99qtaJU2E2k)
 
 # WireGuard VPN Server Auto Setup Script
 

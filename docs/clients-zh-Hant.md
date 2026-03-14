@@ -1,18 +1,18 @@
 [English](clients.md) | [简体中文](clients-zh.md) | [繁體中文](clients-zh-Hant.md)
 
-# Configure WireGuard VPN Clients
+# 設定 WireGuard VPN 客戶端
 
-[WireGuard VPN clients](https://www.wireguard.com/install/) are available for Windows, macOS, iOS and Android.
+[WireGuard VPN 客戶端](https://www.wireguard.com/install/) 可在 Windows、macOS、iOS 和 Android 上使用。
 
-To add a VPN connection, open the WireGuard App on your mobile device, tap the "Add" button, then scan the generated QR code in the script output. For Windows and macOS, first securely transfer the generated `.conf` file to your computer, then open WireGuard and import the file.
+要新增 VPN 連線，請在你的行動裝置上開啟 WireGuard 應用程式，點擊「新增」按鈕，然後掃描腳本輸出中生成的 QR 碼。對於 Windows 和 macOS，請先將生成的 `.conf` 檔案安全地傳送到你的電腦，然後開啟 WireGuard 並匯入該檔案。
 
-To manage WireGuard VPN clients, run the install script again: `sudo bash wireguard.sh`.
+要管理 WireGuard VPN 客戶端，請再次執行安裝腳本：`sudo bash wireguard.sh`。
 
-Read [:book: VPN book](vpn-book.md) to learn step-by-step instructions to configure and manage WireGuard VPN clients.
+閱讀 [:book: VPN book](vpn-book-zh-Hant.md) 以了解設定與管理 WireGuard VPN 客戶端的逐步說明。
 
 <details>
 <summary>
-View usage information for the WireGuard script.
+查看 WireGuard 腳本的使用資訊。
 </summary>
 
 ```
