@@ -1,4 +1,4 @@
-[English](README.md) | [简体中文](README-zh.md) | [繁體中文](README-zh-Hant.md) | [Video en Español](https://www.youtube.com/watch?v=99qtaJU2E2k)
+[English](README.md) | [简体中文](README-zh.md) | [繁體中文](README-zh-Hant.md) | [Русский](README-ru.md) | [Video en Español](https://www.youtube.com/watch?v=99qtaJU2E2k)
 
 # WireGuard VPN 伺服器一鍵安裝腳本
 
@@ -158,7 +158,7 @@ To customize options, you may also run this script without arguments.
 
 ## 致謝
 
-此腳本基於 [Nyr 和 contributors](https://github.com/Nyr/wireguard-install) 的出色工作，並進行了增強和修改以與 [Setup IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn) 專案相容。
+此腳本基於 [Nyr 和 contributors](https://github.com/Nyr/wireguard-install) 的出色工作，並進行了增強和修改以與 [Setup IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/README-zh-Hant.md) 專案相容。
 
 <details>
 <summary>

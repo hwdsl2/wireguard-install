@@ -1,4 +1,4 @@
-[English](clients.md) | [简体中文](clients-zh.md) | [繁體中文](clients-zh-Hant.md)
+[English](clients.md) | [简体中文](clients-zh.md) | [繁體中文](clients-zh-Hant.md) | [Русский](clients-ru.md)
 
 # 配置 WireGuard VPN 客户端
 
