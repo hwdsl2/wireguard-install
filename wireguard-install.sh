@@ -5,7 +5,7 @@
 # Based on the work of Nyr and contributors at:
 # https://github.com/Nyr/wireguard-install
 #
-# Copyright (c) 2022-2025 Lin Song <linsongui@gmail.com>
+# Copyright (c) 2022-2026 Lin Song <linsongui@gmail.com>
 # Copyright (c) 2020-2023 Nyr
 #
 # Released under the MIT License, see the accompanying file LICENSE.txt
@@ -342,7 +342,7 @@ EOF
 show_header3() {
 cat <<'EOF'
 
-Copyright (c) 2022-2025 Lin Song
+Copyright (c) 2022-2026 Lin Song
 Copyright (c) 2020-2023 Nyr
 EOF
 }
