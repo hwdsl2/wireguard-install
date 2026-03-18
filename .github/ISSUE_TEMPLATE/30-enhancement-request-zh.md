@@ -11,8 +11,8 @@ assignees: ''
 
 - [ ] 我搜索了已有的 [Issues](https://github.com/hwdsl2/wireguard-install/issues?q=is%3Aissue)，没有找到类似的改进建议
 - [ ] 这个改进建议是关于 VPN 安装脚本，而不是 WireGuard VPN 本身
-- [ ] 我已阅读 [自述文件](https://github.com/hwdsl2/wireguard-install/blob/master/README-zh.md)
-- [ ] 我已按照说明 [配置 VPN 客户端](https://github.com/hwdsl2/wireguard-install/blob/master/docs/clients-zh.md)
+- [ ] 我已阅读[自述文件](https://github.com/hwdsl2/wireguard-install/blob/master/README-zh.md)
+- [ ] 我已按照说明[配置 VPN 客户端](https://github.com/hwdsl2/wireguard-install/blob/master/docs/clients-zh.md)
 
 **描述改进建议**
 使用清楚简明的语言描述你的改进建议。

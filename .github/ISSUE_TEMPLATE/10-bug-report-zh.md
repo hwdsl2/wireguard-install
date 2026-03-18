@@ -9,8 +9,8 @@ assignees: ''
 
 **任务列表**
 
-- [ ] 我已阅读 [自述文件](https://github.com/hwdsl2/wireguard-install/blob/master/README-zh.md)
-- [ ] 我已按照说明 [配置 VPN 客户端](https://github.com/hwdsl2/wireguard-install/blob/master/docs/clients-zh.md)
+- [ ] 我已阅读[自述文件](https://github.com/hwdsl2/wireguard-install/blob/master/README-zh.md)
+- [ ] 我已按照说明[配置 VPN 客户端](https://github.com/hwdsl2/wireguard-install/blob/master/docs/clients-zh.md)
 - [ ] 我搜索了已有的 [Issues](https://github.com/hwdsl2/wireguard-install/issues?q=is%3Aissue)
 - [ ] 这个 bug 是关于 VPN 安装脚本，而不是 WireGuard VPN 本身
 

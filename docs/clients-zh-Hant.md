@@ -2,7 +2,7 @@
 
 # 設定 WireGuard VPN 客戶端
 
-[WireGuard VPN 客戶端](https://www.wireguard.com/install/) 可在 Windows、macOS、iOS 和 Android 上使用。
+[WireGuard VPN 客戶端](https://www.wireguard.com/install/)可在 Windows、macOS、iOS 和 Android 上使用。
 
 要新增 VPN 連線，請在你的行動裝置上開啟 WireGuard 應用程式，點擊「新增」按鈕，然後掃描腳本輸出中生成的 QR 碼。對於 Windows 和 macOS，請先將生成的 `.conf` 檔案安全地傳送到你的電腦，然後開啟 WireGuard 並匯入該檔案。
 

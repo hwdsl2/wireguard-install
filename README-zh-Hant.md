@@ -152,7 +152,7 @@ To customize options, you may also run this script without arguments.
 
 **[設定 WireGuard VPN 客戶端](docs/clients-zh-Hant.md)**
 
-**閱讀 [:book: VPN book](docs/vpn-book-zh-Hant.md) 以存取 [額外內容](https://ko-fi.com/post/Support-this-project-and-get-access-to-supporter-o-X8X5FVFZC)。**
+**閱讀 [:book: VPN book](docs/vpn-book-zh-Hant.md) 以存取[額外內容](https://ko-fi.com/post/Support-this-project-and-get-access-to-supporter-o-X8X5FVFZC)。**
 
 開始使用自己的專屬 VPN! :sparkles::tada::rocket::sparkles:
 
