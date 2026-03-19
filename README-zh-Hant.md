@@ -2,7 +2,7 @@
 
 # WireGuard VPN 伺服器一鍵安裝腳本
 
-[![Build Status](https://github.com/hwdsl2/wireguard-install/actions/workflows/main.yml/badge.svg)](https://github.com/hwdsl2/wireguard-install/actions/workflows/main.yml) &nbsp;[![License: MIT](docs/images/license.svg)](https://opensource.org/licenses/MIT)
+[![Build Status](https://github.com/hwdsl2/wireguard-install/actions/workflows/main.yml/badge.svg)](https://github.com/hwdsl2/wireguard-install/actions/workflows/main.yml) [![GitHub Stars](https://img.shields.io/github/stars/hwdsl2/wireguard-install.svg?cacheSeconds=86400&logo=github&style=flat)](https://github.com/hwdsl2/wireguard-install/stargazers) [![License: MIT](docs/images/license.svg)](https://opensource.org/licenses/MIT)
 
 使用 Linux 腳本一鍵快速架設自己的 WireGuard VPN 伺服器。支援 Ubuntu、Debian、AlmaLinux、Rocky Linux、CentOS、Fedora、openSUSE 和 Raspberry Pi OS。
 
