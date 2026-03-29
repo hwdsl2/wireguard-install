@@ -4,11 +4,13 @@
 
 [![Build Status](https://github.com/hwdsl2/wireguard-install/actions/workflows/main.yml/badge.svg)](https://github.com/hwdsl2/wireguard-install/actions/workflows/main.yml) [![GitHub Stars](https://img.shields.io/github/stars/hwdsl2/wireguard-install.svg?cacheSeconds=86400&logo=github&style=flat)](https://github.com/hwdsl2/wireguard-install/stargazers) [![License: MIT](docs/images/license.svg)](https://opensource.org/licenses/MIT)
 
+**Новинка:** Также доступно: [сервер WireGuard на Docker](https://github.com/hwdsl2/docker-wireguard/blob/main/README-ru.md).
+
 Установщик сервера WireGuard VPN для Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS, Fedora, openSUSE и Raspberry Pi OS.
 
 Этот скрипт позволит вам настроить собственный VPN-сервер всего за несколько минут, даже если вы раньше не использовали WireGuard. [WireGuard](https://www.wireguard.com) — это быстрый и современный VPN, разработанный с упором на простоту использования и высокую производительность.
 
-См. также: скрипты автоматической установки серверов [OpenVPN](https://github.com/hwdsl2/openvpn-install/blob/master/README-ru.md) и [IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/README-ru.md). Для запуска OpenVPN в Docker см. [сервер OpenVPN на Docker](https://github.com/hwdsl2/docker-openvpn).
+См. также: скрипты автоматической установки серверов [OpenVPN](https://github.com/hwdsl2/openvpn-install/blob/master/README-ru.md) и [IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/README-ru.md). Для запуска WireGuard в Docker см. [сервер WireGuard на Docker](https://github.com/hwdsl2/docker-wireguard/blob/main/README-ru.md).
 
 **[&raquo; :book: Книга: Privacy Tools in the Age of AI](docs/vpn-book.md) &nbsp;[Build Your Own VPN Server](docs/vpn-book.md)**
 
