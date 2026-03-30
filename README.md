@@ -10,7 +10,7 @@ WireGuard VPN server installer for Ubuntu, Debian, AlmaLinux, Rocky Linux, CentO
 
 This script will let you set up your own VPN server in just a few minutes, even if you haven't used WireGuard before. [WireGuard](https://www.wireguard.com) is a fast and modern VPN designed with the goals of ease of use and high performance.
 
-See also: [OpenVPN](https://github.com/hwdsl2/openvpn-install) and [IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn) server auto setup scripts. To run WireGuard in Docker, see [WireGuard server on Docker](https://github.com/hwdsl2/docker-wireguard).
+See also: [OpenVPN](https://github.com/hwdsl2/openvpn-install), [IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn) and [Headscale](https://github.com/hwdsl2/headscale-install) server auto setup scripts.
 
 **[&raquo; :book: Book: Privacy Tools in the Age of AI](docs/vpn-book.md) &nbsp;[Build Your Own VPN Server](docs/vpn-book.md)**
 

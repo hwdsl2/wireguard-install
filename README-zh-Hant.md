@@ -10,7 +10,7 @@
 
 此腳本可讓你在幾分鐘內建立自己的 VPN 伺服器，即使你以前沒有使用過 WireGuard。[WireGuard](https://www.wireguard.com) 是一種快速且現代的 VPN，其設計目標是易於使用和高效能。
 
-另見：[OpenVPN](https://github.com/hwdsl2/openvpn-install/blob/master/README-zh-Hant.md) 和 [IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/README-zh-Hant.md) 伺服器一鍵安裝腳本。如需在 Docker 中執行 WireGuard，請參閱 [Docker 上的 WireGuard 伺服器](https://github.com/hwdsl2/docker-wireguard/blob/main/README-zh-Hant.md)。
+另見：[OpenVPN](https://github.com/hwdsl2/openvpn-install/blob/master/README-zh-Hant.md)、[IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/README-zh-Hant.md) 和 [Headscale](https://github.com/hwdsl2/headscale-install/blob/main/README-zh-Hant.md) 伺服器一鍵安裝腳本。
 
 **[&raquo; :book: Book: Privacy Tools in the Age of AI](docs/vpn-book-zh-Hant.md) &nbsp;[架設自己的 VPN 伺服器](docs/vpn-book-zh-Hant.md)**
 
