@@ -4,15 +4,14 @@
 
 [![Build Status](https://github.com/hwdsl2/wireguard-install/actions/workflows/main.yml/badge.svg)](https://github.com/hwdsl2/wireguard-install/actions/workflows/main.yml) [![GitHub Stars](https://img.shields.io/github/stars/hwdsl2/wireguard-install.svg?cacheSeconds=86400&logo=github&style=flat)](https://github.com/hwdsl2/wireguard-install/stargazers) [![License: MIT](docs/images/license.svg)](https://opensource.org/licenses/MIT)
 
-**New:** Also available: [WireGuard server on Docker](https://github.com/hwdsl2/docker-wireguard).
-
 WireGuard VPN server installer for Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS, Fedora, openSUSE and Raspberry Pi OS.
 
 This script will let you set up your own VPN server in just a few minutes, even if you haven't used WireGuard before. [WireGuard](https://www.wireguard.com) is a fast and modern VPN designed with the goals of ease of use and high performance.
 
-See also: [OpenVPN](https://github.com/hwdsl2/openvpn-install), [IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn) and [Headscale](https://github.com/hwdsl2/headscale-install) server auto setup scripts.
-
-**[&raquo; :book: Book: Privacy Tools in the Age of AI](docs/vpn-book.md) &nbsp;[Build Your Own VPN Server](docs/vpn-book.md)**
+**Also available:**
+- Docker VPN: [WireGuard](https://github.com/hwdsl2/docker-wireguard), [OpenVPN](https://github.com/hwdsl2/docker-openvpn), [IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server), [Headscale](https://github.com/hwdsl2/docker-headscale)
+- Docker AI/Audio: [Whisper (STT)](https://github.com/hwdsl2/docker-whisper), [Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro), [Embeddings](https://github.com/hwdsl2/docker-embeddings), [LiteLLM](https://github.com/hwdsl2/docker-litellm)
+- :book: Book: [Privacy Tools in the Age of AI](docs/vpn-book.md), [Build Your Own VPN Server](docs/vpn-book.md)
 
 ## Features
 
@@ -47,6 +46,8 @@ See the script in action (terminal recording).
 
 <p align="center"><img src="docs/images/demo1.svg"></p>
 </details>
+
+**Note:** Optionally install [OpenVPN](https://github.com/hwdsl2/openvpn-install), [IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn) and/or [Headscale](https://github.com/hwdsl2/headscale-install) on the same server.
 
 For servers with an external firewall (e.g. [EC2](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-security-groups.html)/[GCE](https://cloud.google.com/firewall/docs/firewalls)), open UDP port 51820 for the VPN.
 

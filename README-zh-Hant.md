@@ -4,15 +4,14 @@
 
 [![Build Status](https://github.com/hwdsl2/wireguard-install/actions/workflows/main.yml/badge.svg)](https://github.com/hwdsl2/wireguard-install/actions/workflows/main.yml) [![GitHub Stars](https://img.shields.io/github/stars/hwdsl2/wireguard-install.svg?cacheSeconds=86400&logo=github&style=flat)](https://github.com/hwdsl2/wireguard-install/stargazers) [![License: MIT](docs/images/license.svg)](https://opensource.org/licenses/MIT)
 
-**新：** Docker 版本也可用：[Docker 上的 WireGuard 伺服器](https://github.com/hwdsl2/docker-wireguard/blob/main/README-zh-Hant.md)。
-
 使用 Linux 腳本一鍵快速架設自己的 WireGuard VPN 伺服器。支援 Ubuntu、Debian、AlmaLinux、Rocky Linux、CentOS、Fedora、openSUSE 和 Raspberry Pi OS。
 
 此腳本可讓你在幾分鐘內建立自己的 VPN 伺服器，即使你以前沒有使用過 WireGuard。[WireGuard](https://www.wireguard.com) 是一種快速且現代的 VPN，其設計目標是易於使用和高效能。
 
-另見：[OpenVPN](https://github.com/hwdsl2/openvpn-install/blob/master/README-zh-Hant.md)、[IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/README-zh-Hant.md) 和 [Headscale](https://github.com/hwdsl2/headscale-install/blob/main/README-zh-Hant.md) 伺服器一鍵安裝腳本。
-
-**[&raquo; :book: Book: Privacy Tools in the Age of AI](docs/vpn-book-zh-Hant.md) &nbsp;[架設自己的 VPN 伺服器](docs/vpn-book-zh-Hant.md)**
+**另提供：**
+- Docker VPN：[WireGuard](https://github.com/hwdsl2/docker-wireguard/blob/main/README-zh-Hant.md)、[OpenVPN](https://github.com/hwdsl2/docker-openvpn/blob/main/README-zh-Hant.md)、[IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-zh-Hant.md)、[Headscale](https://github.com/hwdsl2/docker-headscale/blob/main/README-zh-Hant.md)
+- Docker AI/音訊：[Whisper (STT)](https://github.com/hwdsl2/docker-whisper/blob/main/README-zh-Hant.md)、[Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro/blob/main/README-zh-Hant.md)、[Embeddings](https://github.com/hwdsl2/docker-embeddings/blob/main/README-zh-Hant.md)、[LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh-Hant.md)
+- :book: Book：[Privacy Tools in the Age of AI](docs/vpn-book-zh-Hant.md)、[架設自己的 VPN 伺服器](docs/vpn-book-zh-Hant.md)
 
 ## 功能特性
 
@@ -47,6 +46,8 @@ sudo bash wireguard.sh --auto
 
 <p align="center"><img src="docs/images/demo1.svg"></p>
 </details>
+
+**注：** 你可以選擇在同一台伺服器上安裝 [OpenVPN](https://github.com/hwdsl2/openvpn-install/blob/master/README-zh-Hant.md)、[IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/README-zh-Hant.md) 和/或 [Headscale](https://github.com/hwdsl2/headscale-install/blob/main/README-zh-Hant.md)。
 
 對於有外部防火牆的伺服器（例如 [EC2](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-security-groups.html)/[GCE](https://cloud.google.com/firewall/docs/firewalls)），請為 VPN 開啟 UDP 連接埠 51820。
 
