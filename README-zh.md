@@ -8,18 +8,21 @@
 
 该脚本可让你在几分钟内建立自己的 VPN 服务器，即使你以前没有使用过 WireGuard。[WireGuard](https://www.wireguard.com) 是一种快速且现代的 VPN，其设计目标是易于使用和高性能。
 
-**另提供：**
-- Docker VPN：[WireGuard](https://github.com/hwdsl2/docker-wireguard/blob/main/README-zh.md)、[OpenVPN](https://github.com/hwdsl2/docker-openvpn/blob/main/README-zh.md)、[IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-zh.md)、[Headscale](https://github.com/hwdsl2/docker-headscale/blob/main/README-zh.md)
-- Docker AI/音频：[Whisper (STT)](https://github.com/hwdsl2/docker-whisper/blob/main/README-zh.md)、[Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro/blob/main/README-zh.md)、[Embeddings](https://github.com/hwdsl2/docker-embeddings/blob/main/README-zh.md)、[LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh.md)
-- :book: Book：[Privacy Tools in the Age of AI](docs/vpn-book-zh.md)、[搭建自己的 VPN 服务器](docs/vpn-book-zh.md)
-
-## 功能特性
+**功能特性：**
 
 - 全自动的 WireGuard VPN 服务器配置，无需用户输入
 - 支持使用自定义选项进行交互式安装
 - 生成 VPN 配置文件以自动配置 Windows, macOS, iOS 和 Android 设备
+- 为移动设备配置生成二维码
 - 支持管理 WireGuard VPN 用户
 - 优化 `sysctl` 设置以提高 VPN 性能
+- 为 VPN 客户端提供双栈 IPv4 和 IPv6 支持
+
+**另提供：**
+
+- Docker VPN：[WireGuard](https://github.com/hwdsl2/docker-wireguard/blob/main/README-zh.md)、[OpenVPN](https://github.com/hwdsl2/docker-openvpn/blob/main/README-zh.md)、[IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-zh.md)、[Headscale](https://github.com/hwdsl2/docker-headscale/blob/main/README-zh.md)
+- Docker AI/音频：[Whisper (STT)](https://github.com/hwdsl2/docker-whisper/blob/main/README-zh.md)、[Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro/blob/main/README-zh.md)、[Embeddings](https://github.com/hwdsl2/docker-embeddings/blob/main/README-zh.md)、[LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh.md)
+- :book: Book：[Privacy Tools in the Age of AI](docs/vpn-book-zh.md)、[搭建自己的 VPN 服务器](docs/vpn-book-zh.md)
 
 ## 安装说明
 
