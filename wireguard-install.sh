@@ -61,6 +61,7 @@ check_os() {
 				focal)    os_version=2004 ;;
 				jammy)    os_version=2204 ;;
 				noble)    os_version=2404 ;;
+				resolute) os_version=2604 ;;
 			esac
 		fi
 	elif [[ -e /etc/debian_version ]]; then
