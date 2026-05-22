@@ -162,6 +162,10 @@ Options:
 
 Наслаждайтесь собственным VPN! :sparkles::tada::rocket::sparkles:
 
+## Сообщество
+
+- Обсуждения и примеры: [r/selfhostedstack](https://www.reddit.com/r/selfhostedstack/)
+
 ## Благодарности
 
 Этот скрипт основан на отличной работе [Nyr и участников проекта](https://github.com/Nyr/wireguard-install) с улучшениями и изменениями для совместимости с проектом [Setup IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/README-ru.md).

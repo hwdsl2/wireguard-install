@@ -162,6 +162,10 @@ Get your computer or device to use the VPN. Please refer to:
 
 Enjoy your very own VPN! :sparkles::tada::rocket::sparkles:
 
+## Community
+
+- Discussions and showcases: [r/selfhostedstack](https://www.reddit.com/r/selfhostedstack/)
+
 ## Credits
 
 This script is based on the great work of [Nyr and contributors](https://github.com/Nyr/wireguard-install), with enhancements and changes for compatibility with the [Setup IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn) project.

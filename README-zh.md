@@ -162,6 +162,10 @@ To customize options, you may also run this script without arguments.
 
 开始使用自己的专属 VPN! :sparkles::tada::rocket::sparkles:
 
+## 社区
+
+- 讨论与展示：[r/selfhostedstack](https://www.reddit.com/r/selfhostedstack/)
+
 ## 致谢
 
 此脚本基于 [Nyr 和 contributors](https://github.com/Nyr/wireguard-install) 的出色工作，并进行了增强和更改以与 [Setup IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/README-zh.md) 项目兼容。
