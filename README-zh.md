@@ -164,7 +164,8 @@ To customize options, you may also run this script without arguments.
 
 ## 社区
 
-- 讨论与更新：[r/selfhostedstack](https://www.reddit.com/r/selfhostedstack/)
+- 订阅项目更新：[Self-Hosted Stack](https://selfhostedstack.beehiiv.com/subscribe?utm_campaign=vpn)
+- 社区讨论：[r/selfhostedstack](https://www.reddit.com/r/selfhostedstack/)
 
 ## 致谢
 
