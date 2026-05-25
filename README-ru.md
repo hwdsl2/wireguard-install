@@ -164,7 +164,7 @@ Options:
 
 ## Сообщество
 
-- Подпишитесь на обновления проекта: [Self-Hosted Stack](https://selfhostedstack.beehiiv.com/subscribe?utm_campaign=vpn)
+- Подпишитесь на обновления проекта (1–2 письма в месяц): [Self-Hosted Stack](https://selfhostedstack.beehiiv.com/subscribe?utm_campaign=vpn)
 - Обсуждения в сообществе: [r/selfhostedstack](https://www.reddit.com/r/selfhostedstack/)
 
 ## Благодарности
