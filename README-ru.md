@@ -50,7 +50,9 @@ sudo bash wireguard.sh --auto
 <p align="center"><img src="docs/images/demo1.svg"></p>
 </details>
 
-**Примечание:** При желании вы можете установить [OpenVPN](https://github.com/hwdsl2/openvpn-install/blob/master/README-ru.md), [IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/README-ru.md) и/или [Headscale](https://github.com/hwdsl2/headscale-install/blob/main/README-ru.md) на тот же сервер.
+> [!TIP]
+> [Подписаться на обновления проектов](https://selfhostedstack.beehiiv.com/subscribe?utm_campaign=vpn) и получить бесплатные руководства по развёртыванию VPN и AI (PDF, на английском).   
+> При желании вы можете установить [OpenVPN](https://github.com/hwdsl2/openvpn-install/blob/master/README-ru.md), [IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/README-ru.md) и/или [Headscale](https://github.com/hwdsl2/headscale-install/blob/main/README-ru.md) на тот же сервер.
 
 Для серверов с внешним файрволом (например, [EC2](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-security-groups.html)/[GCE](https://cloud.google.com/firewall/docs/firewalls)) откройте UDP-порт 51820 для VPN.
 
@@ -164,8 +166,8 @@ Options:
 
 ## Сообщество
 
-- Подпишитесь на обновления проекта (1–2 письма в месяц): [Self-Hosted Stack](https://selfhostedstack.beehiiv.com/subscribe?utm_campaign=vpn)
-- Обсуждения в сообществе: [r/selfhostedstack](https://www.reddit.com/r/selfhostedstack/)
+- [Подписаться на обновления проектов](https://selfhostedstack.beehiiv.com/subscribe?utm_campaign=vpn) (1–2 письма в месяц)
+- Присоединяйтесь к сообществу [r/selfhostedstack](https://www.reddit.com/r/selfhostedstack/) для обсуждений
 
 ## Благодарности
 
