@@ -51,8 +51,6 @@ sudo bash wireguard.sh --auto
 </details>
 
 > [!TIP]
-> [Подписаться на обновления проектов](https://selfhostedstack.beehiiv.com/subscribe?utm_campaign=vpn-ru) (1–2 письма в месяц) и получить бесплатные руководства по развёртыванию VPN и AI (PDF, на английском).
-> 
 > При желании вы можете установить [OpenVPN](https://github.com/hwdsl2/openvpn-install/blob/master/README-ru.md), [IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/README-ru.md) и/или [Headscale](https://github.com/hwdsl2/headscale-install/blob/main/README-ru.md) на тот же сервер.
 
 Для серверов с внешним файрволом (например, [EC2](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-security-groups.html)/[GCE](https://cloud.google.com/firewall/docs/firewalls)) откройте UDP-порт 51820 для VPN.
@@ -153,6 +151,12 @@ Options:
 ```
 </details>
 
+## Сообщество
+
+- 📬 [Подписаться на обновления проектов](https://selfhostedstack.beehiiv.com/subscribe?utm_campaign=vpn-ru) (1–2 письма в месяц) — получить бесплатные руководства по развёртыванию VPN и AI (PDF, на английском)
+- 💬 Присоединяйтесь к сообществу [r/selfhostedstack](https://www.reddit.com/r/selfhostedstack/) для обсуждений и демонстрации проектов
+- ⭐ Поставьте звезду репозиторию, если он вам полезен
+
 ## Следующие шаги
 
 После установки вы можете снова запустить скрипт, чтобы управлять пользователями или удалить WireGuard.
@@ -164,11 +168,6 @@ Options:
 **Прочитайте [:book: книгу о VPN](docs/vpn-book.md), чтобы получить доступ к [дополнительному контенту](https://ko-fi.com/post/Support-this-project-and-get-access-to-supporter-o-O5O7FVF8J).**
 
 Наслаждайтесь собственным VPN! :sparkles::tada::rocket::sparkles:
-
-## Сообщество
-
-- [Подписаться на обновления проектов](https://selfhostedstack.beehiiv.com/subscribe?utm_campaign=vpn-ru) (1–2 письма в месяц)
-- Присоединяйтесь к сообществу [r/selfhostedstack](https://www.reddit.com/r/selfhostedstack/) для обсуждений
 
 ## Благодарности
 

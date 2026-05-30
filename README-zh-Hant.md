@@ -51,8 +51,6 @@ sudo bash wireguard.sh --auto
 </details>
 
 > [!TIP]
-> [訂閱專案更新](https://selfhostedstack.beehiiv.com/subscribe?utm_campaign=vpn-zh-hant)（每月 1–2 封郵件），獲取免費的 VPN 和 AI 部署指南（PDF，英文）。
-> 
 > 你可以選擇在同一台伺服器上安裝 [OpenVPN](https://github.com/hwdsl2/openvpn-install/blob/master/README-zh-Hant.md)、[IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/README-zh-Hant.md) 和/或 [Headscale](https://github.com/hwdsl2/headscale-install/blob/main/README-zh-Hant.md)。
 
 對於有外部防火牆的伺服器（例如 [EC2](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-security-groups.html)/[GCE](https://cloud.google.com/firewall/docs/firewalls)），請為 VPN 開啟 UDP 連接埠 51820。
@@ -153,6 +151,12 @@ To customize options, you may also run this script without arguments.
 ```
 </details>
 
+## 社群
+
+- 📬 [訂閱專案更新](https://selfhostedstack.beehiiv.com/subscribe?utm_campaign=vpn-zh-hant)（每月 1–2 封郵件）——獲取免費的 VPN 和 AI 部署指南（PDF，英文）
+- 💬 加入 [r/selfhostedstack](https://www.reddit.com/r/selfhostedstack/) 社群，參與討論與專案展示
+- ⭐ 如果本專案對你有幫助，請為儲存庫加星
+
 ## 下一步
 
 安裝完成後，你可以再次執行腳本來管理使用者或移除 WireGuard。
@@ -164,11 +168,6 @@ To customize options, you may also run this script without arguments.
 **閱讀 [:book: VPN book](docs/vpn-book-zh-Hant.md) 以存取[額外內容](https://ko-fi.com/post/Support-this-project-and-get-access-to-supporter-o-X8X5FVFZC)。**
 
 開始使用自己的專屬 VPN! :sparkles::tada::rocket::sparkles:
-
-## 社群
-
-- [訂閱專案更新](https://selfhostedstack.beehiiv.com/subscribe?utm_campaign=vpn-zh-hant)（每月 1–2 封郵件）
-- 加入 [r/selfhostedstack](https://www.reddit.com/r/selfhostedstack/) 社群參與討論
 
 ## 致謝
 
