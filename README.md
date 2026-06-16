@@ -21,8 +21,8 @@ This script will let you set up your own VPN server in just a few minutes, even 
 **Also available:**
 
 - Docker VPN: [WireGuard](https://github.com/hwdsl2/docker-wireguard), [OpenVPN](https://github.com/hwdsl2/docker-openvpn), [IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server), [Headscale](https://github.com/hwdsl2/docker-headscale)
-- AI: [Self-Hosted AI Stack](https://github.com/hwdsl2/self-hosted-ai-stack)
-- :book: Book: [Privacy Tools in the Age of AI](docs/vpn-book.md), [Build Your Own VPN Server](docs/vpn-book.md)
+- AI: [Self-Hosted AI Stack](https://github.com/hwdsl2/self-hosted-ai-stack) for local LLMs, chat, RAG, voice and AI tools
+- Books: [Privacy Tools in the Age of AI](docs/vpn-book.md#new-privacy-tools-in-the-age-of-ai), [Build Your Own VPN Server](docs/vpn-book.md#build-your-own-vpn-server-a-step-by-step-guide)
 
 ## Installation
 

@@ -21,8 +21,8 @@
 **另提供：**
 
 - Docker VPN：[WireGuard](https://github.com/hwdsl2/docker-wireguard/blob/main/README-zh.md)、[OpenVPN](https://github.com/hwdsl2/docker-openvpn/blob/main/README-zh.md)、[IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server/blob/master/README-zh.md)、[Headscale](https://github.com/hwdsl2/docker-headscale/blob/main/README-zh.md)
-- AI：[自托管 AI 套件](https://github.com/hwdsl2/self-hosted-ai-stack/blob/main/README-zh.md)
-- :book: Book：[Privacy Tools in the Age of AI](docs/vpn-book-zh.md)、[搭建自己的 VPN 服务器](docs/vpn-book-zh.md)
+- AI：[自托管 AI 套件](https://github.com/hwdsl2/self-hosted-ai-stack/blob/main/README-zh.md)，用于本地 LLM、聊天、RAG、语音和 AI 工具
+- 图书：[Privacy Tools in the Age of AI](docs/vpn-book-zh.md#新privacy-tools-in-the-age-of-ai)、[搭建自己的 VPN 服务器](docs/vpn-book-zh.md#搭建自己的-vpn-服务器ipsec-vpnopenvpn-与-wireguard-实战指南)
 
 ## 安装说明
 
