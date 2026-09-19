@@ -51,8 +51,7 @@ sudo bash wireguard.sh --auto
 <p align="center"><img src="docs/images/demo1.svg"></p>
 </details>
 
-> [!TIP]
-> 你可以選擇在同一台伺服器上安裝 [OpenVPN](https://github.com/hwdsl2/openvpn-install/blob/master/README-zh-Hant.md)、[IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/README-zh-Hant.md) 和/或 [Headscale](https://github.com/hwdsl2/headscale-install/blob/main/README-zh-Hant.md)。
+**提示：** 你可以選擇在同一台伺服器上安裝 [OpenVPN](https://github.com/hwdsl2/openvpn-install/blob/master/README-zh-Hant.md)、[IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/README-zh-Hant.md) 和/或 [Headscale](https://github.com/hwdsl2/headscale-install/blob/main/README-zh-Hant.md)。
 
 對於有外部防火牆的伺服器（例如 [EC2](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-security-groups.html)/[GCE](https://cloud.google.com/firewall/docs/firewalls)），請為 VPN 開啟 UDP 連接埠 51820。
 

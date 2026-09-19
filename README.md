@@ -51,8 +51,7 @@ See the script in action (terminal recording).
 <p align="center"><img src="docs/images/demo1.svg"></p>
 </details>
 
-> [!TIP]
-> Optionally install [OpenVPN](https://github.com/hwdsl2/openvpn-install), [IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn) and/or [Headscale](https://github.com/hwdsl2/headscale-install) on the same server.
+**Tip:** Optionally install [OpenVPN](https://github.com/hwdsl2/openvpn-install), [IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn) and/or [Headscale](https://github.com/hwdsl2/headscale-install) on the same server.
 
 For servers with an external firewall (e.g. [EC2](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-security-groups.html)/[GCE](https://cloud.google.com/firewall/docs/firewalls)), open UDP port 51820 for the VPN.
 
